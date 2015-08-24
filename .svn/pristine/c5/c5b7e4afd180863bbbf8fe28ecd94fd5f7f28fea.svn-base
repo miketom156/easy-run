@@ -1,0 +1,215 @@
+package com.job5156.task.mail;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+
+import com.google.common.collect.Maps;
+import com.job5156.beans.mail.BaseMailSend;
+import com.job5156.beans.mail.EmailSender;
+import com.job5156.common.CommonEnum.MailServer;
+import com.job5156.common.Constants;
+import com.job5156.common.exception.EmailServerConfigException;
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.model.mail.EmailQueue;
+
+/**
+ * 发送邮件队列邮件
+ * 
+ * @author leo
+ * 
+ */
+public class SendMailQueue extends BaseMailSend {
+	private Logger logger = Logger.getLogger(SendMailQueue.class);
+	private Map<String, EmailSender> mailSenderMap = Maps.newHashMap();
+
+	private static final Map<Integer, MailServer> mailServerMap = Maps.newHashMap();
+	// 每次发送邮件数量
+	private static final Integer MAIL_PER_SEND_NUM = 1000;
+
+    public static enum NumberType {
+
+        /**
+         * 奇数
+         */
+        odd,
+
+        /**
+         * 偶数
+         */
+        even
+    }
+
+	static {
+		/** 针对不同的邮件任务配置邮件服务器 **/
+		mailServerMap.put(Constants.MAIL_TASK_SYS_POSITION_AUDIT, MailServer.EXCHANGE);
+		mailServerMap.put(Constants.MAIL_TASK_SYS_COM_RETURN_POINTS_SALER,  MailServer.EXCHANGE);
+		mailServerMap.put(Constants.MAIL_TASK_ACT_AWARDS_NOTIFY,  MailServer.EXCHANGE);
+		mailServerMap.put(Constants.MAIL_TASK_ACT_FAIR_2015_NOTIFY,  MailServer.EXCHANGE);
+		mailServerMap.put(Constants.MAIL_TASK_PROJ_OFFICIAL_FEEDBACK, MailServer.EXCHANGE);
+		mailServerMap.put(Constants.MAIL_TASK_SYS_COM_RIGHT_AUDIT_SALER, MailServer.EXCHANGE);
+	}
+	
+	public static void main(String[] args){
+		try {
+			SendMailQueue sendMailQueue = new SendMailQueue();
+			sendMailQueue.send();
+			
+			HibernateCountUtil.closeSession();
+		} catch (EmailServerConfigException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public SendMailQueue() throws EmailServerConfigException {
+		EmailSender senderMain = new EmailSender(MailServer.MAIN);
+		EmailSender senderExchange = new EmailSender(MailServer.EXCHANGE);
+		mailSenderMap.put(MailServer.MAIN.getName(), senderMain);
+		mailSenderMap.put(MailServer.EXCHANGE.getName(), senderExchange);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void send() {
+        logger.info("[系统发送队列邮件]开始发送...");
+        Session session = HibernateCountUtil.currentSession();
+        String  hql = "FROM EmailQueue q WHERE q.sendFlag = 0 ORDER BY q.createDate ASC";
+        for(int i=0; i<3; i++){
+            Query query = session.createQuery(hql);
+            query.setFirstResult(0);
+            query.setMaxResults(MAIL_PER_SEND_NUM);
+
+            List<EmailQueue> queueList = query.list();
+            this.sendQueueList(queueList);
+            session.clear();
+        }
+	}
+
+    public void startSendByIdType(NumberType idType){
+
+        logger.info("[系统发送队列邮件]开始发送...");
+        Session session = HibernateCountUtil.currentSession();
+        String hql ="";
+        if(idType == NumberType.odd){
+            hql = "FROM EmailQueue q WHERE q.sendFlag = 0 AND mod(id,2) = 1 ORDER BY q.createDate ASC";
+        }
+        if(idType == NumberType.even){
+            hql = "FROM EmailQueue q WHERE q.sendFlag = 0 AND mod(id,2) = 0 ORDER BY q.createDate ASC";
+        }
+        for(int i=0; i<3; i++){
+            Query query = session.createQuery(hql);
+            query.setFirstResult(0);
+            query.setMaxResults(MAIL_PER_SEND_NUM);
+
+            List<EmailQueue> queueList = query.list();
+            this.sendQueueList(queueList);
+            session.clear();
+        }
+    }
+	
+	@SuppressWarnings("unchecked")
+	public void sendByTaskId(Integer taskId){
+		logger.info("[系统发送队列邮件]开始发送...");
+		Session session = HibernateCountUtil.currentSession();
+		String hql = "FROM EmailQueue q WHERE q.sendFlag = 0 AND q.taskId = ? ORDER BY q.createDate ASC";
+		
+		for(int i=0; i<3; i++){
+			Query query = session.createQuery(hql);
+			query.setParameter(0, taskId);
+			query.setFirstResult(0);
+			query.setMaxResults(MAIL_PER_SEND_NUM);
+			
+			List<EmailQueue> queueList = query.list();
+			this.sendQueueList(queueList);
+			session.clear();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void sendByTaskGroup(List<Integer> taskIdList){
+		logger.info("[系统发送队列邮件]开始发送...");
+		Session session = HibernateCountUtil.currentSession();
+		String hql = "FROM EmailQueue q WHERE q.sendFlag = 0 AND q.taskId in(:taskIdList) ORDER BY q.createDate ASC";
+		
+		for(int i=0; i<3; i++){
+			Query query = session.createQuery(hql);
+			query.setParameterList("taskIdList", taskIdList);
+			query.setFirstResult(0);
+			query.setMaxResults(MAIL_PER_SEND_NUM);
+			
+			List<EmailQueue> queueList = query.list();
+			this.sendQueueList(queueList);
+			session.clear();
+		}
+	}
+
+	/**
+	 * 发送邮件队列邮件
+	 * 
+	 * @param queueList
+	 */
+	private void sendQueueList(List<EmailQueue> queueList) {
+		if (CollectionUtils.isNotEmpty(queueList)) {
+			for (EmailQueue emailQueue : queueList) {
+				boolean flag = this.sendQueue(emailQueue);
+				this.updateSendFlag(emailQueue, flag);
+				System.out.println(emailQueue.getToAddr() + "发送" + (flag ? "成功" : "失败") + new Date());
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+			}
+		}
+	}
+
+	/**
+	 * 发送邮件
+	 * 
+	 * @param emailQueue
+	 * @return
+	 */
+	private boolean sendQueue(EmailQueue emailQueue) {
+		EmailSender mailSender = this.getMailSenderByTaskId(emailQueue.getTaskId());
+		return mailSender.send(emailQueue);
+	}
+
+	/**
+	 * 更新发送状态
+	 * 
+	 * @param emailQueue
+	 * @param flag
+	 */
+	private void updateSendFlag(EmailQueue emailQueue, boolean flag) {
+		int sendFlag = flag ? Constants.MAIL_SEND_SUCCESS : Constants.MAIL_SEND_FAIL;
+		emailQueue.setSendFlag(sendFlag);
+		if(emailQueue.getSendDate() == null){
+			emailQueue.setSendDate(new Date());
+		}else{
+			emailQueue.setResendDate(new Date());
+		}
+		Session session = HibernateCountUtil.currentSession();
+		session.update(emailQueue);
+		session.flush();
+	}
+
+	/**
+	 * 根据发送任务ID获取邮件发送服务器
+	 * 
+	 * @param taskId
+	 * @return
+	 */
+	private EmailSender getMailSenderByTaskId(Integer taskId) {
+		EmailSender sender = mailSenderMap.get(MailServer.MAIN.getName());
+		if (mailServerMap.containsKey(taskId)) {
+			MailServer mailServer = mailServerMap.get(taskId);
+			sender = mailSenderMap.get(mailServer.getName());
+		}
+		return sender;
+	}
+}

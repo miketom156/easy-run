@@ -1,0 +1,23 @@
+package com.job5156.run;
+
+import com.job5156.task.PosAverageLevelStatis;
+import com.job5156.task.PosWordAnalyse;
+import org.apache.log4j.Logger;
+
+/**
+ * Created by pzm on 2015/1/12.
+ */
+public class RunPosAvgStatis {
+    private static Logger logger = Logger.getLogger(RunPosAvgStatis.class);
+
+    public static void main(String[] args) {
+        logger.info("[RunPosAvgStatis] start!");
+        PosAverageLevelStatis posAverageLevelStatis = new PosAverageLevelStatis();
+        posAverageLevelStatis.statisUsingTaoLabelPosCount();
+        posAverageLevelStatis.statisPosCount();
+        posAverageLevelStatis.statisTaoLabelUseFrequency();
+        posAverageLevelStatis.statisAvgSalary();
+        posAverageLevelStatis.statisPosTypeAvgLevel();
+        logger.info("[RunPosAvgStatis] end!");
+    }
+}

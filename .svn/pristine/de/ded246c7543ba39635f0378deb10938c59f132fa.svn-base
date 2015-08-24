@@ -1,0 +1,51 @@
+package com.job5156.run.perbehav;
+
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import com.job5156.task.perbehav.PerBehavAnalyse;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+
+import java.util.Date;
+
+/**
+ * <p></p>
+ * <p/>
+ * Date:2015/4/4 9:52
+ *
+ * @author pzm
+ * @version 1.0
+ */
+
+public class RunImportPerBehavTrack {
+    private static Logger LOG = Logger.getLogger(RunImportPerBehavTrack.class);
+
+    public static void main(String[] args) {
+        String fromDateStr = "", toDateStr = "";
+        for (String arg : args) {
+            if (arg.startsWith("--fromDate")) {
+                fromDateStr = arg.substring("--fromDate=".length());
+            }
+            if (arg.startsWith("--toDate")) {
+                toDateStr = arg.substring("--toDate=".length());
+            }
+        }
+        Date fromDate = null, toDate = null;
+        if (StringUtils.isNotBlank(fromDateStr)) {
+            fromDate = new DateTime(fromDateStr).toDate();
+        }
+        if (StringUtils.isNotBlank(toDateStr)) {
+            toDate = new DateTime(toDateStr).toDate();
+        }
+        try {
+            new PerBehavAnalyse().importPerBehavTrack(fromDate, toDate);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        } finally {
+            HibernateCountUtil.currentSession().flush();
+            HibernateCountUtil.closeSession();
+            HibernateUtil.closeSession();
+        }
+    }
+}

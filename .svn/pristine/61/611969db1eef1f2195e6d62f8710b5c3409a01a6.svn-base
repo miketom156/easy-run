@@ -1,0 +1,283 @@
+package com.job5156.beans.mail;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.job5156.common.util.*;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+import org.apache.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+
+import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.job5156.common.CommonEnum.MailCount;
+import com.job5156.common.Constants;
+import com.job5156.model.logs.LogMailBatchSend;
+import com.job5156.model.per.PerUser;
+
+/**
+ * 邮件发送任务抽象类
+ * 
+ * @author leo
+ * 
+ */
+public abstract class BaseMailSend {
+    private static Logger logger = Logger.getLogger(BaseMailSend.class);
+
+	private int sendNum = 0; // 已发送邮件数量
+	private int sendTestMailPerNum = 1000; // 每发1000封邮件就发送一封测试邮件
+	private String[] testMailAddr = new String[] { "yf_198407@163.com","jmail168@163.com","myejb22@163.com"}; // 测试邮箱地址
+	//private String[] testMailAddr = new String[] { "myejb22@163.com"}; // 测试邮箱地址
+	private String[] testMailInnerAddr = new String[] { "dg3996@zhitong.com" }; // 内部邮件地址
+
+	public int getSendNum() {
+		return sendNum;
+	}
+
+	public int getSendTestMailPerNum() {
+		return sendTestMailPerNum;
+	}
+
+	public void setSendTestMailPerNum(int sendTestMailPerNum) {
+		this.sendTestMailPerNum = sendTestMailPerNum;
+	}
+
+	public String[] getTestMailAddr() {
+		return testMailAddr;
+	}
+
+	public void setTestMailAddr(String... testMailAddr) {
+		this.testMailAddr = testMailAddr;
+	}
+
+	public String[] getTestMailInnerAddr() {
+		return testMailInnerAddr;
+	}
+
+	public void setTestMailInnerAddr(String[] testMailInnerAddr) {
+		this.testMailInnerAddr = testMailInnerAddr;
+	}
+
+	/**
+	 * 发送邮件数量+1
+	 */
+	public void addSendNum() {
+		this.sendNum++;
+	}
+
+    public void addSendNum(int num) {
+        this.sendNum += num;
+    }
+
+	/**
+	 * 邮件发送
+	 */
+	public abstract void send();
+
+	/**
+	 * 校验是否发送邮件，判断邮箱格式及是否退订[用于系统订阅邮件判断]
+	 * 
+	 * @param perUser
+	 * @param mailType
+	 * @return
+	 */
+	protected boolean checkMailSend(PerUser perUser, Integer mailType) {
+		boolean checkFlag = true;
+        if(perUser==null || perUser.getEmail() == null || perUser.getId() == null || mailType == null) {
+            return false;
+        }
+		checkFlag = checkFlag && this.checkEmail(perUser.getEmail());
+		checkFlag = checkFlag && this.checkSubscribe(perUser.getId(), mailType);
+		return checkFlag;
+	}
+	
+	/**
+	 * 检测内部邮箱
+	 * 
+	 * @param email
+	 * @return
+	 */
+	protected boolean checkInternalEmail(String email) {
+		boolean checkFlag = true;
+		checkFlag = checkFlag && this.checkEmail(email);
+		checkFlag = checkFlag && StringUtils.endsWithIgnoreCase(email, "@zhitong.com");
+		return checkFlag;
+	}
+
+	/**
+	 * 正则表达式过滤邮件地址
+	 * 
+	 * @param email
+	 * @return
+	 */
+	protected boolean checkEmail(String email) {
+		if(StringUtils.isNotBlank(email)){
+			Pattern pattern = Pattern.compile(Constants.PATTERN_EMAIL, Pattern.CASE_INSENSITIVE);
+			Matcher matcher = pattern.matcher(email);
+			return matcher.find();
+		}
+		return false;
+	}
+
+    /**
+     * 多个EMAIL列表，只取有效的一个
+     * @param emailStr
+     * @return
+     */
+    protected String getOneVaildEmail(String emailStr) {
+        String email = "";
+        if (StringUtils.isNotBlank(emailStr)) {
+            String [] emArr = StringUtils.split(emailStr,";");
+            for (String em: emArr){
+                if(checkEmail(em)){
+                    email = em;
+                    break;
+                }
+            }
+        }
+        return email;
+    }
+    
+    /**
+     * 多个EMAIL列表，只返回有效的EMAIL
+     * @param emailStr
+     * @return
+     */
+    protected List<String> getVaildEmailList(String emailStr) {
+        List<String> emailList = Lists.newArrayList();
+        if (StringUtils.isNotBlank(emailStr)) {
+            String [] emArr = StringUtils.split(emailStr,";");
+            for (String em: emArr){
+                if(checkEmail(em)){
+                	emailList.add(em);
+                }
+            }
+        }
+        return emailList;
+    }
+
+	/**
+	 * 校验是否参与订阅，默认已订阅
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	protected boolean checkSubscribe(Integer userId, Integer mailType) {
+		boolean checkFlag = true;
+		Map<String, String> mailConfigMap = Constants.mailTypeConfigMap.get(mailType);
+        if(mailConfigMap == null){
+           logger.error("邮件退订的类别未设置,The subscribe key is NULL!");
+           return false;
+        }
+		String hql = "SELECT COUNT(ps.id) FROM PerSubscription ps WHERE ps.userId = :userId AND ps.mainType = :mainType AND ps.subType = :subType"
+				+ " AND ps.subscribeStatus = :status";
+		Session session = HibernateUtil.currentSession();
+
+		Query query = session.createQuery(hql);
+		query.setParameter("userId", userId);
+		query.setParameter("mainType", mailConfigMap.get("mainType"));
+		query.setParameter("subType", mailConfigMap.get("subType"));
+		query.setParameter("status", Constants.MAIL_SUBSCRIBE_NO);
+
+		int count = ((Long) query.uniqueResult()).intValue();
+		if (count > 0) {
+			checkFlag = false;
+		}
+		return checkFlag;
+	}
+
+	/**
+	 * 组装邮件退订链接，使用网站私钥对数据信息进行加密
+	 * 
+	 * @param perUser
+	 * @return
+	 */
+	protected String assembleUnsubscribeLink(PerUser perUser, Integer mailType) {
+		StringBuffer buf = new StringBuffer();
+		String token = MD5Builder.md5(String.valueOf(KeyMaskUtil.resumeIdToNo(perUser.getId())), perUser.getEmail(),
+				String.valueOf(mailType), Constants.UNSUBSCRIBE_PRIVATE_KEY);
+		buf.append("/mail/unsubscribe?uid=" + KeyMaskUtil.resumeIdToNo(perUser.getId()));
+		buf.append("&email=" + perUser.getEmail());
+		buf.append("&type=" + mailType);
+		buf.append("&token=" + token);
+		return buf.toString();
+	}
+
+	/**
+	 * 添加邮件发送状态统计
+	 * 
+	 * @param countMap
+	 * @param mailCount
+	 */
+	public void addMailCount(Map<String, Integer> countMap, MailCount mailCount) {
+		int count = NumberUtils.toInt(String.valueOf(countMap.get(mailCount.getType())), 0) + 1;
+		countMap.put(mailCount.getType(), count);
+	}
+
+	/**
+	 * 记录邮件发送日志
+	 * 
+	 * @param statusMap
+	 * @param taskId
+	 * @param summary
+	 */
+	protected LogMailBatchSend saveLog(Map<String, Integer> statusMap, Integer taskId, String summary,String proc) {
+
+        LogMailBatchSend mailLog = new LogMailBatchSend();
+        try{
+			mailLog.setTaskId(taskId);
+			mailLog.setSummary(summary);
+			mailLog.setTotal(NumberUtils.toInt(String.valueOf(statusMap.get(MailCount.TOTAL.getType())), 0));
+			mailLog.setSuccess(NumberUtils.toInt(String.valueOf(statusMap.get(MailCount.SEND_SUCCESS.getType())), 0));
+			mailLog.setFail(NumberUtils.toInt(String.valueOf(statusMap.get(MailCount.SEND_FAIL.getType())), 0));
+			mailLog.setDetail(new Gson().toJson(statusMap));
+			mailLog.setCreateDate(new Date());
+			mailLog.setDoneFlag(NumberUtils.toInt(String.valueOf(statusMap.get("doneFlag")), 0));
+	        mailLog.setBeginId(statusMap.get(MailCount.BEGIN_ID.getType()));
+			Integer id = NumberUtils.toInt(String.valueOf(statusMap.get("id")), 0);
+	
+			if(id > 0){
+				mailLog.setId(id);
+			}
+			
+			if(StringUtils.isNotBlank(proc)){
+				mailLog.setProc(proc);
+			}
+			
+			Session session = HibernateCountUtil.currentSession();
+			session.saveOrUpdate(mailLog);
+			session.flush();
+			session.clear();
+
+		}catch(Exception e){
+			logger.error("写入saveLog失败：", e);
+		}
+        return mailLog;
+	}
+
+    /**
+     * 检查email是否是硬退信
+     * @param email
+     * @return
+     */
+    protected boolean isHardBouceEmail(String email) {
+        boolean checkFlag = false;
+
+        String hql = "SELECT count(*) FROM EmailInvaild WHERE email = :email";
+
+        Session session = HibernateSalveBaseUtil.currentSession();
+        Query query = session.createQuery(hql);
+        query.setParameter("email", email);
+
+        int count = ((Long) query.uniqueResult()).intValue();
+        if (count > 0) {
+            checkFlag = true;
+        }
+        return checkFlag;
+    }
+}

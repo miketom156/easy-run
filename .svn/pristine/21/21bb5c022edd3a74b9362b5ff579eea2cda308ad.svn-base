@@ -1,0 +1,60 @@
+package com.job5156.run.perbehav;
+
+import com.job5156.common.util.HibernateActionUtil;
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import com.job5156.model.per.PerUser;
+import com.job5156.task.perbehav.PerBehavAnalyse;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+
+import java.util.Date;
+import java.util.List;
+
+/**
+ * <p></p>
+ * <p/>
+ * Date:2015/4/4 9:52
+ *
+ * @author pzm
+ * @version 1.0
+ */
+
+public class RunPerBehavAnalyze {
+    private static Logger LOG = Logger.getLogger(RunPerBehavAnalyze.class);
+
+    public static void main(String[] args) {
+        String fromDateStr = "", toDateStr = "";
+        for (String arg : args) {
+            if (arg.startsWith("--fromDate")) {
+                fromDateStr = arg.substring("--fromDate=".length());
+            }
+            if (arg.startsWith("--toDate")) {
+                toDateStr = arg.substring("--toDate=".length());
+            }
+        }
+        Date fromDate = null, toDate = null;
+        Date yestoday = new DateTime(System.currentTimeMillis()).minusDays(1).withTimeAtStartOfDay().toDate();
+        if (StringUtils.isNotBlank(fromDateStr)) {
+            fromDate = new DateTime(fromDateStr).toDate();
+        } else {
+            fromDate = yestoday;
+        }
+        if (StringUtils.isNotBlank(toDateStr)) {
+            toDate = new DateTime(toDateStr).toDate();
+        } else {
+            toDate = yestoday;
+        }
+        try {
+            new PerBehavAnalyse().gentPerBehavTrack(fromDate, toDate);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        } finally {
+            HibernateCountUtil.currentSession().flush();
+            HibernateCountUtil.closeSession();
+            HibernateUtil.closeSession();
+            HibernateActionUtil.closeSession();
+        }
+    }
+}

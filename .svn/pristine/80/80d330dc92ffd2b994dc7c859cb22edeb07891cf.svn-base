@@ -1,0 +1,28 @@
+package com.job5156.run.mail;
+
+import com.job5156.common.util.HibernateActionUtil;
+import com.job5156.common.util.HibernateSalveBaseUtil;
+import com.job5156.task.mail.SysFindPosToResRecommend;
+import org.apache.log4j.Logger;
+
+/**
+ * <p>推送最近一周新发布职位，两天一次</p>
+ * Date:2015/7/18 8:35
+ *
+ * @author pzm
+ * @version 1.0
+ */
+public class RunFindPosToResRecomendTwoRun {
+    private static final Logger logger = Logger.getLogger(RunFindPosToResRecomendThreeRun.class);
+    public static void main(String[] args) {
+        logger.info("[RunFindPosToResRecomendTwoRun] start!");
+        try {
+            SysFindPosToResRecommend sysFindPosToResRecommend = new SysFindPosToResRecommend();
+            sysFindPosToResRecommend.findPosToResRecommendTwoRun();
+        } finally {
+            HibernateSalveBaseUtil.closeSession();
+            HibernateActionUtil.closeSession();
+        }
+        logger.info("[RunFindPosToResRecomendTwoRun] end!");
+    }
+}

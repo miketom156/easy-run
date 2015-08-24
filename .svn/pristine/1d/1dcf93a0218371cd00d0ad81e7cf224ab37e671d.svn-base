@@ -1,0 +1,126 @@
+# BASE
+# -----------------------------------------
+jdbc.driverClassName=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://192.168.8.47/5156base?zeroDateTimeBehavior=convertToNull
+jdbc.username=ztcwr
+jdbc.password=Chitone5156Zt%1
+jdbc.partition.count=2
+jdbc.max.connections.per.partition=5
+jdbc.min.connections.per.partition=2
+
+# BASE-SLAVE
+# -----------------------------------------
+jdbc.slave.base.driverClassName=com.mysql.jdbc.Driver
+jdbc.slave.base.url=jdbc:mysql://192.168.8.47/5156base?zeroDateTimeBehavior=convertToNull
+jdbc.slave.base.username=ztcwr
+jdbc.slave.base.password=Chitone5156Zt%1
+jdbc.slave.base.partition.count=2
+jdbc.slave.base.max.connections.per.partition=5
+jdbc.slave.base.min.connections.per.partition=2
+
+# ACTION
+# -----------------------------------------
+jdbc.action.driverClassName=com.mysql.jdbc.Driver
+jdbc.action.url=jdbc:mysql://192.168.8.47/5156action?zeroDateTimeBehavior=convertToNull
+jdbc.action.username=ztcwr
+jdbc.action.password=Chitone5156Zt%1
+jdbc.action.partition.count=2
+jdbc.action.max.connections.per.partition=5
+jdbc.action.min.connections.per.partition=2
+
+# ACTION-SLAVE
+# -----------------------------------------
+jdbc.actionSlave.driverClassName=com.mysql.jdbc.Driver
+jdbc.actionSlave.url=jdbc:mysql://192.168.8.47/5156action?zeroDateTimeBehavior=convertToNull
+jdbc.actionSlave.username=ztcwr
+jdbc.actionSlave.password=Chitone5156Zt%1
+jdbc.actionSlave.partition.count=2
+jdbc.actionSlave.max.connections.per.partition=5
+jdbc.actionSlave.min.connections.per.partition=2
+
+# SYSTEM
+# -----------------------------------------
+jdbc.system.driverClassName=com.mysql.jdbc.Driver
+jdbc.system.url=jdbc:mysql://192.168.8.47/5156base?zeroDateTimeBehavior=convertToNull
+jdbc.system.username=ztcwr
+jdbc.system.password=Chitone5156Zt%1
+jdbc.system.partition.count=2
+jdbc.system.max.connections.per.partition=5
+jdbc.system.min.connections.per.partition=2
+
+# IRC
+# -----------------------------------------
+jdbc.irc.driverClassName=com.mysql.jdbc.Driver
+jdbc.irc.url=jdbc:mysql://192.168.8.46/irc?zeroDateTimeBehavior=convertToNull
+jdbc.irc.username=irc
+jdbc.irc.password=irc
+jdbc.irc.partition.count=2
+jdbc.irc.max.connections.per.partition=5
+jdbc.irc.min.connections.per.partition=2
+
+#QUERY
+# -----------------------------------------
+jdbc.query.driverClassName=com.mysql.jdbc.Driver
+jdbc.query.url=jdbc:mysql://192.168.2.142/5156query?zeroDateTimeBehavior=convertToNull
+jdbc.query.username=cwr2012
+jdbc.query.password=Chwr@25vr4
+jdbc.query.partition.count=3
+jdbc.query.max.connections.per.partition=10
+jdbc.query.min.connections.per.partition=5
+
+#QUERY2
+# -----------------------------------------
+jdbc.query2.driverClassName=com.mysql.jdbc.Driver
+jdbc.query2.url=jdbc:mysql://192.168.8.47/5156query?zeroDateTimeBehavior=convertToNull
+jdbc.query2.username=ztcwr
+jdbc.query2.password=Chitone5156Zt%1
+jdbc.query2.partition.count=2
+jdbc.query2.max.connections.per.partition=5
+jdbc.query2.min.connections.per.partition=2
+
+#QUERY3
+# -----------------------------------------
+jdbc.query3.driverClassName=com.mysql.jdbc.Driver
+jdbc.query3.url=jdbc:mysql://192.168.8.47/5156query?zeroDateTimeBehavior=convertToNull
+jdbc.query3.username=ztcwr
+jdbc.query3.password=Chitone5156Zt%1
+jdbc.query3.partition.count=3
+jdbc.query3.max.connections.per.partition=10
+jdbc.query3.min.connections.per.partition=5
+
+#CMS
+# -----------------------------------------
+jdbc.cms.driverClassName=com.mysql.jdbc.Driver
+jdbc.cms.url=jdbc:mysql://192.168.2.220/dedecmsv57gbk?zeroDateTimeBehavior=convertToNull&amp;characterEncoding=GBK
+jdbc.cms.username=wywcms
+jdbc.cms.password=wyw@cms57
+
+#COUNT
+# -----------------------------------------
+jdbc.count.driverClassName=com.mysql.jdbc.Driver
+jdbc.count.url=jdbc:mysql://192.168.8.29/Jobemail?zeroDateTimeBehavior=convertToNull
+jdbc.count.username=jobquery
+jdbc.count.password=jobquery
+jdbc.count.partition.count=2
+jdbc.count.max.connections.per.partition=5
+jdbc.count.min.connections.per.partition=2
+
+#BACKUP-ACTION
+# -----------------------------------------
+jdbc.backup.action.driverClassName=com.mysql.jdbc.Driver
+jdbc.backup.action.url=jdbc:mysql://192.168.8.47/test?zeroDateTimeBehavior=convertToNull
+jdbc.backup.action.username=ztcwr
+jdbc.backup.action.password=Chitone5156Zt%1
+jdbc.backup.action.partition.count=2
+jdbc.backup.action.max.connections.per.partition=5
+jdbc.backup.action.min.connections.per.partition=2
+
+#BACKUP-COUNT
+# -----------------------------------------
+jdbc.backup.count.driverClassName=com.mysql.jdbc.Driver
+jdbc.backup.count.url=jdbc:mysql://192.168.8.47/test?zeroDateTimeBehavior=convertToNull
+jdbc.backup.count.username=ztcwr
+jdbc.backup.count.password=Chitone5156Zt%1
+jdbc.backup.count.partition.count=2
+jdbc.backup.count.max.connections.per.partition=5
+jdbc.backup.count.min.connections.per.partition=2

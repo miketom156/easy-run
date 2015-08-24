@@ -1,0 +1,29 @@
+package com.job5156.run;
+
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import com.job5156.task.PosWordAnalyse;
+import org.apache.log4j.Logger;
+
+/**
+ * Created by pzm on 2015/1/12.
+ */
+public class RunPosWordAnalyse {
+    private static Logger logger = Logger.getLogger(RunPosWordAnalyse.class);
+
+    public static void main(String[] args) {
+        logger.info("[RunPosWordAnalyse] start!");
+        PosWordAnalyse posWordAnalyse = new PosWordAnalyse();
+        try {
+            posWordAnalyse.gentPosWordJobDetailData();
+            posWordAnalyse.gentPosWordLibData();
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        } finally {
+            HibernateUtil.closeSession();
+            HibernateCountUtil.closeSession();
+        }
+        posWordAnalyse.judgePosType();
+        logger.info("[RunPosWordAnalyse] end!");
+    }
+}

@@ -1,0 +1,337 @@
+package com.job5156.model.sys;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.SelectBeforeUpdate;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Created by pzm on 2014/10/17.
+ */
+@Entity
+@DynamicUpdate
+@DynamicInsert
+@SelectBeforeUpdate
+public class SysFromSource implements Serializable {
+    public static final String PATTERN_URL = "[^//]*?\\.(com|cn|net|org|biz|info|cc|tv)";
+    public static final String SEARCHENGINE_BAIDU = "百度";
+    public static final String SEARCHENGINE_GOOGLE = "谷歌";
+    public static final String SEARCHENGINE_YAHOO = "雅虎";
+    public static final String SEARCHENGINE_SOGOU = "搜狗";
+    public static final String SEARCHENGINE_BING = "必应";
+    public static final String SEARCHENGINE_YOUDAO = "有道";
+    public static final String SEARCHENGINE_SOSO = "搜搜";
+    public static final String SEARCHENGINE_ZHONGSOU = "中国搜索";
+    public static final String SEARCHENGINE_360 = "360搜索";
+    /**
+     * 搜索引擎配置
+     * 第一维：分类值
+     * 第二维：搜索域名
+     * 第三维：关键词参数
+     * 第四维：中文名
+     */
+    private static String[][] OPT_SEARCH_ENGIN =
+            {
+                    {"10", "baidu.", "wd,word,kw,bs", SEARCHENGINE_BAIDU},
+                    {"20", "google.", "q", SEARCHENGINE_GOOGLE},
+                    {"30", "yahoo.", "p", SEARCHENGINE_YAHOO},
+                    {"40", "sogou.", "query", SEARCHENGINE_SOGOU},
+                    {"50", "bing.", "q", SEARCHENGINE_BING},
+                    {"60", "youdao.", "q", SEARCHENGINE_YOUDAO},
+                    {"70", "soso.", "w", SEARCHENGINE_SOSO},
+                    {"80", "zhongsou.", "w", SEARCHENGINE_ZHONGSOU},
+                    {"90", "so.", "q", SEARCHENGINE_360}
+            };
+
+    public static final int SOURCE_TYPE_SEARCHENGINE = 0;
+    public static final int SOURCE_TYPE_OUTTERLINK = 1;
+    public static final int SOURCE_TYPE_SELFACCESS = 2;
+    public static final int DEFAULT_SOURCE_TYPE = SOURCE_TYPE_SELFACCESS;
+
+    private static final long serialVersionUID = 1L;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    int id;
+    String sourceDomain = "";
+    String sourceAddr = "";
+    int sourceType = DEFAULT_SOURCE_TYPE;
+    String searchEngine = "";
+    String searchKeyword = "";
+    Date createTime;
+    public static Logger logger = Logger.getLogger(SysFromSource.class);
+
+    public String getSourceDomain() {
+        return sourceDomain;
+    }
+
+    public String getSourceAddr() {
+        return sourceAddr;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setSourceDomain(String sourceDomain) {
+        this.sourceDomain = sourceDomain;
+    }
+
+    public void setSourceAddr(String sourceAddr) {
+        this.sourceAddr = sourceAddr;
+    }
+
+    public int getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(int sourceType) {
+        this.sourceType = sourceType;
+    }
+
+    public String getSearchEngine() {
+        return searchEngine;
+    }
+
+    public void setSearchEngine(String searchEngine) {
+        this.searchEngine = searchEngine;
+    }
+
+    public String getSearchKeyword() {
+        return searchKeyword;
+    }
+
+    public void setSearchKeyword(String searchKeyword) {
+        this.searchKeyword = searchKeyword;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public void parseFromSourceUrl(String fromSourceUrl) {
+        if (StringUtils.isEmpty(fromSourceUrl)) {
+            sourceType = SOURCE_TYPE_SELFACCESS;
+            return;
+        }
+        sourceDomain = getUrlDomain(fromSourceUrl);
+        sourceAddr = getUrlAddr(fromSourceUrl, sourceDomain);
+        parseFromSourceUrl(sourceDomain, sourceAddr);
+    }
+
+    public void parseFromSourceUrl(String sourceDomain, String sourceAddr) {
+        if (StringUtils.isEmpty(sourceAddr) && StringUtils.isEmpty(sourceDomain)) {
+            sourceType = SOURCE_TYPE_SELFACCESS;
+            return;
+        }
+        this.sourceDomain = sourceDomain;
+        this.sourceAddr = sourceAddr;
+        matchSourceType();
+    }
+
+    private void matchSourceType() {
+        for (int i = 0; i < OPT_SEARCH_ENGIN.length; i++) {
+            if ((sourceDomain).indexOf(OPT_SEARCH_ENGIN[i][1]) != -1) {
+                sourceType = SOURCE_TYPE_SEARCHENGINE;
+                searchEngine = OPT_SEARCH_ENGIN[i][3];
+                searchKeyword = parseKeyword(sourceAddr, OPT_SEARCH_ENGIN[i][2]);
+                return;
+            }
+        }
+        sourceType = SOURCE_TYPE_OUTTERLINK;
+    }
+
+    private String parseKeyword(String fromAddr, String keyWordParamNames) {
+        String key = "";
+        for (String keyParam : StringUtils.split(keyWordParamNames, ",")) {
+            if (StringUtils.trimToEmpty(fromAddr).indexOf("?" + keyParam + "=") != -1) {
+                int beginpos = StringUtils.trimToEmpty(fromAddr).indexOf("?" + keyParam + "=");
+                beginpos = beginpos + keyParam.length() + 2;
+                int endpos = StringUtils.trimToEmpty(fromAddr).indexOf("&", beginpos);
+                if (endpos == -1) endpos = StringUtils.trimToEmpty(fromAddr).length();
+                key = StringUtils.trimToEmpty(fromAddr).substring(beginpos, endpos);
+                break;
+            } else if (StringUtils.trimToEmpty(fromAddr).indexOf("&" + keyParam + "=") != -1) {
+                int beginpos = StringUtils.trimToEmpty(fromAddr).indexOf("&" + keyParam + "=");
+                beginpos = beginpos + keyParam.length() + 2;
+                int endpos = StringUtils.trimToEmpty(fromAddr).indexOf("&", beginpos);
+                if (endpos == -1) endpos = StringUtils.trimToEmpty(fromAddr).length();
+                key = StringUtils.trimToEmpty(fromAddr).substring(beginpos, endpos);
+                break;
+            } else {
+                continue;
+            }
+        }
+        return filterKeyWord(decodeKeyWord(key));
+    }
+
+    private String decodeKeyWord(String key) {
+        String decodeKey = "";
+        String encodeReg = "^(?:[\\x00-\\x7f]|[\\xfc-\\xff][\\x80-\\xbf]{5}|[\\xf8-\\xfb][\\x80-\\xbf]{4}|[\\xf0-\\xf7][\\x80-\\xbf]{3}|[\\xe0-\\xef][\\x80-\\xbf]{2}|[\\xc0-\\xdf][\\x80-\\xbf])+$";
+        if (!"".equals(key)) {
+            Pattern encodePatt = Pattern.compile(encodeReg);
+            String unescapeString = unescape(key);
+            Matcher encodeMat = encodePatt.matcher(unescapeString);
+            String encodeString = "gbk";
+            if (encodeMat.matches()) encodeString = "utf-8";
+            try {
+                decodeKey = URLDecoder.decode(key, encodeString);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
+        return decodeKey;
+    }
+
+    private String filterKeyWord(String key) {
+        if ("".equals(StringUtils.trimToEmpty(key))) return "";
+        key = StringUtils.trimToEmpty(key);
+        key = replace(key, "\\", "");
+        key = replace(key, "\"", "");
+        key = replace(key, "'", "");
+        key = replace(key, " ", "&nbsp;");
+        key = replace(key, "　", "&nbsp;");
+        key = replace(key, "|", "&nbsp;");
+        return key;
+    }
+
+    private String replace(String szSrc, String szOld, String szNew) {
+        try {
+            int iPos = -1;
+            if (szSrc == null || szSrc.trim().equals("")) return "";
+            StringBuffer sb = new StringBuffer();
+            String szTmp = szSrc.trim();
+            if (szNew == null) return szTmp;
+            if (szOld == null || szOld.equals("")) return szTmp;
+            if ((iPos = szTmp.indexOf(szOld)) == -1) return szTmp; //提前退出
+            int iOldLen = szOld.length();
+            int iNewLen = szNew.length();
+            int iSrcLen = szSrc.length();
+            int iStart = 0;
+            while ((iPos = szTmp.indexOf(szOld, iStart)) > -1) {
+                sb.append(szTmp.substring(iStart, iPos));
+                sb.append(szNew);
+                iStart = iPos + iOldLen;
+            }
+            if (iStart < iSrcLen) sb.append(szTmp.substring(iStart));
+            return sb.toString();
+        } catch (Exception ex) {
+            return "";
+        }
+
+    }
+
+    private String unescape(String src) {
+        StringBuffer tmp = new StringBuffer();
+        tmp.ensureCapacity(src.length());
+        int lastPos = 0, pos = 0;
+        char ch;
+        while (lastPos < src.length()) {
+            pos = src.indexOf("%", lastPos);
+            if (pos == lastPos) {
+                if (src.charAt(pos + 1) == 'u') {
+                    ch = (char) Integer.parseInt(src.substring(pos + 2, pos + 6), 16);
+                    tmp.append(ch);
+                    lastPos = pos + 6;
+                } else {
+                    ch = (char) Integer.parseInt(src.substring(pos + 1, pos + 3), 16);
+                    tmp.append(ch);
+                    lastPos = pos + 3;
+                }
+            } else {
+                if (pos == -1) {
+                    tmp.append(src.substring(lastPos));
+                    lastPos = src.length();
+                } else {
+                    tmp.append(src.substring(lastPos, pos));
+                    lastPos = pos;
+                }
+            }
+        }
+        return tmp.toString();
+    }
+
+    /**
+     * 截取域名
+     *
+     * @param url
+     * @return
+     */
+    public static String getUrlDomain(String url) {
+        String domain = "";
+        if (StringUtils.isBlank(url))
+            return "";
+        Pattern p = Pattern.compile(PATTERN_URL, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = p.matcher(url);
+        if (matcher.find()) {
+            domain = matcher.group();
+        } else {
+            String flagStr = "://";
+            int b = url.indexOf(flagStr);
+            if (b > 0) {
+                if (url.indexOf("/", b + flagStr.length()) > 0) {
+                    domain = url.substring(b + flagStr.length(), url.indexOf("/", b + flagStr.length()));
+                } else if (url.indexOf("?", b + flagStr.length()) > 0) {
+                    domain = url.substring(b + flagStr.length(), url.indexOf("?", b + flagStr.length()));
+                } else {
+                    domain = url.substring(b + flagStr.length());
+                }
+            }
+        }
+        domain = filterDomainChar(domain);
+        return domain;
+    }
+
+    /**
+     * 过滤域名中第一个字符':'
+     *
+     * @param domain
+     * @return
+     */
+    public static String filterDomainChar(String domain) {
+        while (domain.startsWith(":")) {
+            domain = domain.substring(1);
+        }
+        return domain;
+    }
+
+    /**
+     * 截取相对地址
+     *
+     * @param url    ：URL地址
+     * @param domain ：域名
+     * @return
+     */
+    public static String getUrlAddr(String url, String domain) {
+        String addr = "";
+        if (StringUtils.isBlank(url))
+            return "";
+        if (StringUtils.isBlank(domain))
+            return "";
+        int pos = url.indexOf(domain);
+        if (pos > -1) {
+            addr = url.substring(pos + domain.length());
+        }
+        return addr;
+    }
+}

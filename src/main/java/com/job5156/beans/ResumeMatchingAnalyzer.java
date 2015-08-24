@@ -1,0 +1,428 @@
+package com.job5156.beans;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.job5156.common.Constants;
+import com.job5156.common.jedis.JedisFactory;
+import com.job5156.common.jedis.JedisTemplate;
+import com.job5156.common.option.OptionMap;
+import com.job5156.common.util.IKAnalysisUtil;
+import com.job5156.model.com.ComPosition;
+import com.job5156.model.per.PerResume;
+import com.job5156.model.per.PerUser;
+import com.job5156.vo.per.PerIntentVo;
+import com.job5156.vo.per.PerResumeVo;
+import com.job5156.vo.per.PerWorkInfoVo;
+
+/**
+ * <p>
+ * 简历匹配度分析器<br>
+ * 分析规则来自ResumeMatchingComponent<br>
+ * </p>
+ *
+ *
+ * Date:2015-6-19 下午2:00:06
+ * @author leo
+ * @version 1.0
+ */
+public class ResumeMatchingAnalyzer {
+    private static final Logger LOGGER = Logger.getLogger(ResumeMatchingAnalyzer.class);
+
+    private ComPosition comPosition;
+    private PerResume perResume;
+    private PerUser perUser;
+    private PerResumeVo resumeVo;
+    private PerIntentVo intentInfoVo;
+    private List<PerWorkInfoVo> workInfoVoList;
+    private JedisTemplate jedisTemplate =  JedisFactory.getInstance().getJedisTemplate(Constants.REDIS_KEY_POS_RANK_LEXICON_MAP);
+    
+    public double getResumeMatchScore(ComPosition comPosition, PerResume perResume) {
+        if (comPosition == null || perResume == null || perResume.getPerUser() == null) {
+            return 0;
+        }
+        this.comPosition = comPosition;
+        this.perResume = perResume;
+        perUser = perResume.getPerUser();
+        resumeVo = new PerResumeVo(perResume);
+        intentInfoVo = resumeVo.getIntentInfoVo();
+        workInfoVoList = resumeVo.getWorkInfoVoList();
+        int matchScore = 0;
+        matchScore += matchPosNameScore();
+        matchScore += matchPosTypeScore();
+        matchScore += matchPosKeywordScore();
+        matchScore += matchWorkLocationScore();
+        matchScore += matchSalaryScore();
+        matchScore += matchPosTaoLabelScore();
+        matchScore += matchPosDegreeScore();
+        matchScore += matchPosAgeScore();
+        matchScore += matchPosWorkYearScore();
+        matchScore += matchPosLocationScore();
+        LOGGER.trace(String.format("[简历匹配度] 最终得分：%s", matchScore));
+        return (double) matchScore / 100;
+    }
+
+    //现所在地要求
+    private int matchPosLocationScore() {
+        int posLocationScore = 0;
+        if (comPosition.getReqLocation() == 0) {
+            posLocationScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 现所在地没有要求：5分"));
+        } else if (isBelongToLocation(perUser.getLocation(), comPosition.getReqLocation())) {
+            posLocationScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 现所在地要求=个人现所在地：5分, 现所在地要求：%s, 个人现所在地：%s", OptionMap.getCityAddr(comPosition.getReqLocation()), OptionMap.getCityAddr(perUser.getLocation())));
+        }
+        LOGGER.trace(String.format("[简历匹配度] 现所在地要求匹配结果：%s", posLocationScore));
+        return posLocationScore;
+    }
+
+    /**
+     * 比较某个地区是否属于或等于另一个地区
+     *
+     * @param location         地区
+     * @param belongToLocation 是否属于另一个地区
+     * @return
+     */
+    private boolean isBelongToLocation(Integer location, Integer belongToLocation) {
+        //没有指定belongToLocation，相当于任何地区都命中
+        if (belongToLocation == null || belongToLocation == 0) {
+            return true;
+        }
+        if (location == null || location == 0) {
+            return false;
+        }
+        if (belongToLocation.toString().length() == 8 && !belongToLocation.toString().substring(4, 8).equals("0000")) {//镇，要求完全匹配
+            return location.equals(belongToLocation);
+        } else if (!belongToLocation.toString().substring(2, 4).equals("00")) { //城市，只比较前4位
+            return location.toString().substring(0, 4).equals(belongToLocation.toString().substring(0, 4));
+        } else { //省，只比较前2位
+            return location.toString().substring(0, 2).equals(belongToLocation.toString().substring(0, 2));
+        }
+    }
+
+    //职位工作经验 匹配 简历工作年限
+    private int matchPosWorkYearScore() {
+        int posWorkYearScore = 0;
+        if (comPosition.getReqWorkYear() == 99) {
+            posWorkYearScore = 5;
+            LOGGER.trace("[简历匹配度] 命中工作经验不限：5分");
+        } else if (comPosition.getReqWorkYear() <= perUser.getJobyearType()) {
+            posWorkYearScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 命中工作经验<=工作年限：5分, 工作经验：%s, 工作年限：%s", OptionMap.getValue(OptionMap.OptionType.OPT_COM_REQ_WORKYEAR, comPosition.getReqWorkYear()), OptionMap.getValue(OptionMap.OptionType.OPT_PER_WORKYEAR, perUser.getJobyearType())));
+        } else if ((comPosition.getReqWorkYear() - perUser.getJobyearType()) <= 2) {
+            posWorkYearScore = 2;
+            LOGGER.trace(String.format("[简历匹配度] 命中0<工作经验-工作年限<=2：2分, 工作经验：%s, 工作年限：%s", OptionMap.getValue(OptionMap.OptionType.OPT_COM_REQ_WORKYEAR, comPosition.getReqWorkYear()), OptionMap.getValue(OptionMap.OptionType.OPT_PER_WORKYEAR, perUser.getJobyearType())));
+        }
+        LOGGER.trace(String.format("[简历匹配度] 职位工作经验匹配结果：%s", posWorkYearScore));
+        return posWorkYearScore;
+    }
+
+    //年龄要求
+    private int matchPosAgeScore() {
+        int posAgeScore = 0;
+        int reqAgeMin = comPosition.getReqAgeMin() == null ? 0 : comPosition.getReqAgeMin();
+        int reqAgeMax = comPosition.getReqAgeMax() == null ? Integer.MAX_VALUE : comPosition.getReqAgeMax();
+        if (perUser.getAge() >= reqAgeMin && perUser.getAge() <= reqAgeMax) {
+            posAgeScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 命中 最低年龄要求<=年龄<=最高年龄要求：5分, 最低年龄要求：%s, 最高年龄要求：%s, 年龄：%s", comPosition.getReqAgeMin(), comPosition.getReqAgeMax(), perUser.getAge()));
+        }
+        LOGGER.trace(String.format("[简历匹配度] 年龄要求匹配结果：%s", posAgeScore));
+        return posAgeScore;
+    }
+
+    //职位学历要求 匹配 简历最高学历
+    private int matchPosDegreeScore() {
+        int posDegreeScore = 0;
+        int posReqDegree = comPosition.getReqDegree();
+        int resumeMaxDegree = resumeVo.getMaxDegree() == null ? 0 : resumeVo.getMaxDegree().getDegree();
+        if (posReqDegree <= resumeMaxDegree) {
+            posDegreeScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 命中 学历要求<=最高学历：5分, 职位学历要求：%s, 简历最高学历：%s", OptionMap.getValue(OptionMap.OptionType.OPT_PER_DEGREE, posReqDegree), OptionMap.getValue(OptionMap.OptionType.OPT_PER_DEGREE, resumeMaxDegree)));
+        } else if (posReqDegree - resumeMaxDegree == 1) {
+            posDegreeScore = 2;
+            LOGGER.trace(String.format("[简历匹配度] 命中 学历要求-最高学历=1：2分, 职位学历要求：%s, 简历最高学历：%s", OptionMap.getValue(OptionMap.OptionType.OPT_PER_DEGREE, posReqDegree), OptionMap.getValue(OptionMap.OptionType.OPT_PER_DEGREE, resumeMaxDegree)));
+        }
+        LOGGER.trace(String.format("[简历匹配度] 职位学历要求匹配结果：%s", posDegreeScore));
+        return posDegreeScore;
+    }
+
+    //职位亮点 匹配 简历更多期望
+    private int matchPosTaoLabelScore() {
+        int posTaoLabelScore = 0;
+        if (StringUtils.isBlank(comPosition.getTaoLabelStr())) {
+            posTaoLabelScore = 5;
+            LOGGER.trace(String.format("[简历匹配度] 职位没有职位亮点：5分"));
+        }
+        if (intentInfoVo.getTreatment() != null && StringUtils.isNotBlank(comPosition.getTaoLabelStr())) {
+            String[] posTaoLabelList = comPosition.getTaoLabelStr().split(" ");
+            String[] resumeTreatmentList = intentInfoVo.getTreatment().split(",");
+            for (String posTaoLabel : posTaoLabelList) {
+                for (String resumeTreatment : resumeTreatmentList) {
+                    if (resumeTreatment.equalsIgnoreCase(posTaoLabel)) {
+                        posTaoLabelScore += 1;
+                        LOGGER.trace(String.format("[简历匹配度] 命中职位亮点=简历更多期望：1分, 职位亮点：%s, 简历更多期望：%s", posTaoLabel, resumeTreatment));
+                    }
+                }
+            }
+        }
+        posTaoLabelScore = posTaoLabelScore > 5 ? 5 : posTaoLabelScore;
+        LOGGER.trace(String.format("[简历匹配度] 职位亮点匹配结果：%s", posTaoLabelScore));
+        return posTaoLabelScore;
+    }
+
+    //职位薪资待遇 匹配 简历薪资要求
+    private int matchSalaryScore() {
+        int salaryScore = 0;
+        if ((comPosition.getNegotiableFlag() != null && comPosition.getNegotiableFlag().equals(1))
+                || (comPosition.getMaxSalaryWithTrans() == 0 && comPosition.getMinSalaryWithTrans() == 0)) {
+            salaryScore = 10;
+            LOGGER.trace("[简历匹配度] 命中职位薪资待遇为面议：10分");
+        } else if (intentInfoVo.getSalary() == null || intentInfoVo.getSalary() == 0) {
+            salaryScore = 10;
+            LOGGER.trace("[简历匹配度] 命中简历无薪资要求或面议：10分");
+        } else {
+            Integer resumeSalary = intentInfoVo.getSalary();
+            String resumeSalaryStr = OptionMap.getValue(OptionMap.OptionType.OPT_SALARY, resumeSalary);
+            if (StringUtils.isBlank(resumeSalaryStr)) {
+                salaryScore = 0;
+            } else if (resumeSalaryStr.equals("面议")) {
+                salaryScore = 10;
+                LOGGER.trace("[简历匹配度] 命中简历薪资要求为面议：10分");
+            } else {
+                int resumeMaxSalary = 0, resumeMinSalary = 0;
+                int posMaxSalary = comPosition.getMaxSalaryWithTrans();
+                int posMinSalary = comPosition.getMinSalaryWithTrans();
+                if (resumeSalaryStr.equals("50000及以上")) {
+                    resumeMaxSalary = Integer.MAX_VALUE;
+                    resumeMinSalary = 50000;
+                } else if (resumeSalaryStr.equals("1500以下")) {
+                    resumeMaxSalary = 1500;
+                    resumeMinSalary = 0;
+                } else {
+                    resumeMaxSalary = Integer.parseInt(resumeSalaryStr.split("-")[1]);
+                    resumeMinSalary = Integer.parseInt(resumeSalaryStr.split("-")[0]);
+                }
+                int resumeMaxMinusPosMax = resumeMaxSalary - posMaxSalary;
+                int resumeMinMinusPosMax = resumeMinSalary - posMaxSalary;
+                int resumeMaxMinusPosMin = resumeMaxSalary - posMinSalary;
+                int resumeMinMinusPosMin = resumeMinSalary - posMinSalary;
+                if (posMaxSalary >= resumeMaxSalary) {//1.最高薪资待遇>=薪资要求（包含面议）
+                    salaryScore = 10;
+                    LOGGER.trace(String.format("[简历匹配度] 命中最高薪资待遇>=薪资要求：10分, 最高薪资待遇：%s, 薪资要求：%s", posMaxSalary, resumeSalaryStr));
+                } else if ((resumeMaxMinusPosMax > 0 && resumeMaxMinusPosMax <= 500)
+                        || (resumeMinMinusPosMax > 0 && resumeMinMinusPosMax <= 500)) {//2.0<薪资要求-最高薪资待遇<=500
+                    salaryScore = 8;
+                    LOGGER.trace(String.format("[简历匹配度] 命中0<薪资要求-最高薪资待遇<=500：8分, 最高薪资待遇：%s, 薪资要求：%s", posMaxSalary, resumeSalaryStr));
+                } else if ((resumeMaxMinusPosMin > 500 && resumeMaxMinusPosMax <= 1000)
+                        || (resumeMinMinusPosMin > 500 && resumeMinMinusPosMin <= 1000)) {//3.500<薪资要求-最低薪资待遇<=1000
+                    salaryScore = 5;
+                    LOGGER.trace(String.format("[简历匹配度] 命中500<薪资要求-最低薪资待遇<=1000：5分, 最低薪资待遇：%s, 薪资要求：%s", posMinSalary, resumeSalaryStr));
+                } else if ((resumeMaxMinusPosMin > 1000 && resumeMaxMinusPosMax <= 1500)
+                        || (resumeMinMinusPosMin > 1000 && resumeMinMinusPosMin <= 1500)) {//4.1000<薪资要求-最低薪资待遇<=1500
+                    salaryScore = 2;
+                    LOGGER.trace(String.format("[简历匹配度] 命中1000<薪资要求-最低薪资待遇<=1500：2分, 最低薪资待遇：%s, 薪资要求：%s", posMinSalary, resumeSalaryStr));
+                }
+            }
+        }
+        LOGGER.trace(String.format("[简历匹配度] 职位薪资待遇匹配结果：%s", salaryScore));
+        return salaryScore;
+    }
+
+    //职位名称 匹配 期望职位
+    private int matchPosNameScore() {
+        int posNameScore = 0;
+        String posName = comPosition.getPosName();
+        String[] expectJobList = new String[]{};
+        String[] expectJobCusList = new String[]{};
+        if(intentInfoVo!=null){
+            if (StringUtils.isNotBlank(intentInfoVo.getJobCodeStr())) {
+                expectJobList = intentInfoVo.getJobCodeStr().split(",");
+            }
+            if (StringUtils.isNotBlank(intentInfoVo.getJobName())) {
+                expectJobCusList = intentInfoVo.getJobName().split(",| ");
+            }
+        }
+        boolean isCusJobEqPosName = false;
+        for (String expectJobCus : expectJobCusList) {
+            if (similarPosWord(expectJobCus, posName)) {
+                isCusJobEqPosName = true;
+                LOGGER.trace(String.format("[简历匹配度] 命中职位名称=自定义职位：15分, 职位名称：%s, 自定义职位名称：%s", posName, expectJobCus));
+            }
+        }
+
+        //职位名称=自定义职位/第一意向职位类别
+        if (isCusJobEqPosName || (expectJobList.length > 0 && similarPosWord(posName, expectJobList[0]))) {
+            posNameScore += 15;
+            if (!isCusJobEqPosName) {
+                LOGGER.trace(String.format("[简历匹配度] 命中职位名称=第一意向职位类别：15分, 职位名称：%s, 第一意向职位类别：%s", posName, expectJobList[0]));
+            }
+        } else if (expectJobList.length > 1 && similarPosWord(posName, expectJobList[1])) {//职位名称=第二意向职位类别
+            posNameScore += 10;
+            LOGGER.trace(String.format("[简历匹配度] 命中职位名称=第二意向职位类别：10分, 职位名称：%s, 第二意向职位类别：%s", posName, expectJobList[1]));
+        }
+        if(workInfoVoList!=null){
+            //职位名称=曾工作职位名称
+            for (PerWorkInfoVo workInfoVo : workInfoVoList) {
+                if (similarPosWord(workInfoVo.getJobNameStr(), posName)) {
+                    posNameScore += 10;
+                    LOGGER.trace(String.format("[简历匹配度] 命中职位名称=曾工作职位名称：10分, 职位名称：%s, 曾工作职位名称：%s", posName, workInfoVo.getJobNameStr()));
+                    break;
+                }
+            }
+        }
+
+        LOGGER.trace(String.format("[简历匹配度] 职位名称匹配结果：%s", posNameScore));
+        return posNameScore;
+    }
+
+    //职位类别 匹配 期望职位
+    @SuppressWarnings("unchecked")
+	private int matchPosTypeScore() {
+        int posTypeScore = 0;
+        String[] expectJobList = new String[]{};
+        String[] expectJobCusList = new String[]{};
+        if (StringUtils.isNotBlank(intentInfoVo.getJobCodeStr())) {
+            expectJobList = intentInfoVo.getJobCodeStr().split(",");
+        }
+        if (StringUtils.isNotBlank(intentInfoVo.getJobName())) {
+            expectJobCusList = intentInfoVo.getJobName().split(",| ");
+        }
+        List<Integer> posTypeList = comPosition.getPosTypeList() == null ? Collections.EMPTY_LIST : comPosition.getPosTypeList();
+        String firstPosType = posTypeList.size() > 0 ? OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, posTypeList.get(0)) : "";
+
+        boolean isCusJobEqFirstPosType = false;
+        for (String expectJobCus : expectJobCusList) {
+            if (similarPosWord(expectJobCus, firstPosType)) {
+                isCusJobEqFirstPosType = true;
+                LOGGER.trace(String.format("[简历匹配度] 命中第一职位类别=自定义职位：15分, 职位类别：%s, 自定义职位名称：%s", firstPosType, expectJobCus));
+            }
+        }
+
+        //第一职位类别=自定义职位/第一意向职位类别
+        if (isCusJobEqFirstPosType || (expectJobList.length > 0 && firstPosType.equals(expectJobList[0]))) {
+            posTypeScore += 15;
+            if (!isCusJobEqFirstPosType) {
+                LOGGER.trace(String.format("[简历匹配度] 命中第一职位类别=第一意向职位类别：15分, 职位类别：%s, 第一意向职位类别：%s", firstPosType, expectJobList[0]));
+            }
+        } else if (expectJobList.length > 1 && firstPosType.equals(expectJobList[1])) {//第一职位类别=第二意向职位类别
+            posTypeScore += 10;
+            LOGGER.trace(String.format("[简历匹配度] 命中第一职位类别=第二意向职位类别：10分, 职位类别：%s, 第二意向职位类别：%s", firstPosType, expectJobList[1]));
+        }
+
+        //职位类别=曾工作职位名称
+        if (workInfoVoList != null && posTypeList.size() > 0) {
+            LABEL_POS_WORK:
+            for (PerWorkInfoVo workInfoVo : workInfoVoList) {
+                for (Integer posType : comPosition.getPosTypeList()) {
+                    String posTypeName = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, posType);
+                    if (similarPosWord(workInfoVo.getJobNameStr(), posTypeName)) {
+                        posTypeScore += 10;
+                        LOGGER.trace(String.format("[简历匹配度] 命中职位类别=曾工作职位名称：10分, 职位类别：%s, 曾工作职位名称：%s", posTypeName, workInfoVo.getJobNameStr()));
+                        break LABEL_POS_WORK;
+                    }
+                }
+            }
+        }
+        LOGGER.trace(String.format("[简历匹配度] 职位类别匹配结果：%s", posTypeScore));
+        return posTypeScore;
+    }
+
+    //职位关键字 匹配 简历自我介绍、工作描述
+    private int matchPosKeywordScore() {
+        int posKeywordScore = 0;
+        String[] keywordList = StringUtils.isNotBlank(comPosition.getPosKeywordStr()) ? comPosition.getPosKeywordStr().split(" ") : new String[]{};
+        if (keywordList.length == 0) {
+            posKeywordScore = 5;
+            LOGGER.trace("[简历匹配度] 职位没有关键字 ：5分");
+        } else {
+            String skill = perResume.getMap().get("skill").toString();
+            for (String keyword : keywordList) {
+                if (StringUtils.isNotBlank(keyword) && skill.contains(keyword)) {
+                    posKeywordScore += 1;
+                    LOGGER.trace(String.format("[简历匹配度] 命中职位关键字 匹配 简历自我介绍：1分, 职位关键字：%s, 自我介绍：%s", keyword, skill));
+                }
+            }
+            if (workInfoVoList != null) {
+                for (PerWorkInfoVo workInfoVo : workInfoVoList) {
+                    for (String keyword : keywordList) {
+                        if (StringUtils.isNotBlank(keyword) && workInfoVo.getDescription() != null && workInfoVo.getDescription().contains(keyword)) {
+                            posKeywordScore += 1;
+                            LOGGER.trace(String.format("[简历匹配度] 命中职位关键字 匹配 工作描述：1分, 职位关键字：%s, 工作描述：%s", keyword, workInfoVo.getDescription()));
+                        }
+                    }
+                }
+            }
+        }
+        posKeywordScore = posKeywordScore > 5 ? 5 : posKeywordScore;
+        LOGGER.trace(String.format("[简历匹配度] 职位关键字匹配结果：%s", posKeywordScore));
+        return posKeywordScore;
+    }
+
+    //职位工作地区 匹配 简历期望地区
+    private int matchWorkLocationScore() {
+        int workLocationScore = 0;
+        if (StringUtils.isNotBlank(perResume.getMap().get("expectLocation").toString())) {
+            List<Integer> workLocationList = Lists.newArrayList();
+            if (StringUtils.isNotBlank(comPosition.getWorkLocation()) && !StringUtils.equals(comPosition.getWorkLocation(), "[]")) {
+                Gson gson = new Gson();
+                workLocationList = gson.fromJson(comPosition.getWorkLocation(), new TypeToken<List<Integer>>() {
+                }.getType());
+            }
+            String[] expectLocationList = StringUtils.isNotBlank(perResume.getMap().get("expectLocation").toString()) ? perResume.getMap().get("expectLocation").toString().split(",") : new String[]{};
+            for (Integer workLocation : workLocationList) {
+                if (expectLocationList.length > 0 && isBelongToLocation(Integer.parseInt(expectLocationList[0]), workLocation)) {//职位工作地区=第一期望地区
+                    workLocationScore += 10;
+                    LOGGER.trace(String.format("[简历匹配度] 命中职位工作地区=第一期望地区：10分, 职位工作地区：%s, 第一期望地区：%s", OptionMap.getCityAddr(workLocation), OptionMap.getCityAddr(Integer.parseInt(expectLocationList[0]))));
+                    break;
+                } else if (expectLocationList.length > 1 && isBelongToLocation(Integer.parseInt(expectLocationList[1]), workLocation)) {//职位工作地区=第二期望地区
+                    workLocationScore += 5;
+                    LOGGER.trace(String.format("[简历匹配度] 命中职位工作地区=第二期望地区：5分, 职位工作地区：%s, 第二期望地区：%s", OptionMap.getCityAddr(workLocation), OptionMap.getCityAddr(Integer.parseInt(expectLocationList[1]))));
+                    break;
+                } else if (expectLocationList.length > 2 && isBelongToLocation(Integer.parseInt(expectLocationList[2]), workLocation)) {//职位工作地区=第三期望地区
+                    workLocationScore += 2;
+                    LOGGER.trace(String.format("[简历匹配度] 命中职位工作地区=第三期望地区：2分, 职位工作地区：%s, 第三期望地区：%s", OptionMap.getCityAddr(workLocation), OptionMap.getCityAddr(Integer.parseInt(expectLocationList[2]))));
+                    break;
+                }
+            }
+        }
+        LOGGER.trace(String.format("[简历匹配度] 职位工作地区匹配结果：%s", workLocationScore));
+        return workLocationScore;
+    }
+
+    /**
+     * 职位关键字相等或者相似
+     * @param posWordA
+     * @param posWordB
+     * @return
+     */
+    private boolean similarPosWord(String posWordA, String posWordB){
+        return posWordA.equals(posWordB) || getSimilarWordList(posWordA, posWordB).size()>0;
+    }
+
+    /**
+     * 获取两个字符串中的相似词列表
+     * @param str1
+     * @param str2
+     * @return
+     */
+    public List<String> getSimilarWordList(String str1, String str2){
+    	List<String> wordList = Lists.newArrayList();
+    	if(StringUtils.isNotBlank(str1) && StringUtils.isNotBlank(str2)){
+    		List<String> wordSet1 = IKAnalysisUtil.analysisKeywordSegAndSelf(str1);
+    		for (String word : wordSet1) {
+				if(StringUtils.isNotBlank(word) 
+						&& !jedisTemplate.hExists(Constants.REDIS_KEY_POS_RANK_LEXICON_MAP, word)
+						&& StringUtils.contains(str2, word)){
+					wordList.add(word);
+				}
+			}
+    	}
+    	return wordList;
+    }
+}

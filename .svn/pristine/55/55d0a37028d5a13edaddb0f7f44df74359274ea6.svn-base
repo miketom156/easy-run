@@ -1,0 +1,268 @@
+package com.job5156.task;
+
+import com.google.gson.Gson;
+import com.job5156.common.SegWordComponent;
+import com.job5156.common.SimilarScoreCalculator;
+import com.job5156.common.option.OptionMap;
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import org.apache.commons.lang.ObjectUtils;
+import org.apache.log4j.Logger;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.*;
+
+/**
+ * 职位词库得分
+ * Created by pzm on 2015/1/12.
+ */
+public class PosWordAnalyse {
+    private static final int JUDGE_TYPE_SYS = 0;
+
+    private static final int MATCH_JOB_YES = 1;
+    private static final int MATCH_JOB_NO = 0;
+    private static final int MATCH_JOB_NULL = 2;
+    JdbcTemplate baseJdbcTemplate = HibernateUtil.getJdbcTemplate();
+    JdbcTemplate countJdbcTemplate = HibernateCountUtil.getJdbcTemplate();
+    SegWordComponent segWordComponent = new SegWordComponent();
+    SimilarScoreCalculator similarScoreCalculator = new SimilarScoreCalculator();
+    Gson gson = new Gson();
+    private Logger logger = Logger.getLogger(PosWordAnalyse.class);
+    private int searchLimit = 10000;
+    private String fromEffectPosTb = " FROM " +
+            " com_position cp " +
+            "LEFT JOIN com_right cri ON cp.com_id = cri.com_id " +
+            "WHERE " +
+            " cp.pos_status > 0 " +
+            "AND cp.del_status != - 1 " +
+            "AND cp.end_date >= CURDATE() " +
+            "AND cri.member_type >= 1 " +
+            "AND cri.member_type <= 6 " +
+            "AND cri.expire_date >= CURDATE() ";
+
+    public void gentPosWordJobDetailData() {
+        logger.info(String.format("[%s]:start", Thread.currentThread().getStackTrace()[1].getMethodName()));
+//        countJdbcTemplate.execute("truncate table pos_word_job_detail");
+        countJdbcTemplate.execute("delete from pos_word_job_detail");
+        int effectPosCount = baseJdbcTemplate.queryForInt("select count(1) " + fromEffectPosTb);
+        long insertCount = 0;
+        for (int i = 0; i < effectPosCount; i += searchLimit) {
+            List<Map<String, Object>> effectPosList = baseJdbcTemplate.queryForList("select cp.id,pos_name,pos_keyword,pos_type " + fromEffectPosTb + " order by 1 limit ?,?", i, searchLimit);
+            List<Object[]> batchArgs = new ArrayList<>();
+            for (Map<String, Object> effectPos : effectPosList) {
+                Integer posId = (Integer) effectPos.get("id");
+                List<Double> jobCodeList = gson.fromJson(ObjectUtils.toString(effectPos.get("pos_type"), ""), List.class);
+                Set<String> posSegNameSet = new HashSet<>();
+                String posName = ObjectUtils.toString(effectPos.get("pos_name"), "");
+                if (!posName.isEmpty()) {
+                    posSegNameSet.addAll(segWordComponent.cutWordAndSelf(posName));
+                }
+                Object posKeywordStr = effectPos.get("pos_keyword");
+                List<String> posKeywordList = gson.fromJson(ObjectUtils.toString(posKeywordStr, ""), List.class);
+                if (posKeywordList != null) {
+                    for (String posKeyword : posKeywordList) {
+                        posSegNameSet.add(posKeyword);
+                    }
+                }
+
+                for (String posSegName : posSegNameSet) {
+                    if (posSegName.trim().isEmpty()) {
+                        continue;
+                    }
+                    for (Double jobCode : jobCodeList) {
+                        if (jobCode != null) {
+                            batchArgs.add(new Object[]{posId, posName, posKeywordStr, posSegName.trim(), jobCode.intValue()});
+                        }
+                    }
+                }
+            }
+            countJdbcTemplate.batchUpdate("insert into pos_word_job_detail (pos_id,pos_name,pos_keywords,pos_segword,job_code) values (?,?,?,?,?)", batchArgs);
+            insertCount += batchArgs.size();
+            logger.debug(String.format("[%s]:finish %s", Thread.currentThread().getStackTrace()[1].getMethodName(), i + searchLimit));
+        }
+        logger.info(String.format("[%s]:end! insertCount:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), insertCount));
+    }
+
+    public void gentPosWordLibData() {
+        int insertCount = 0, updateCoute = 0, failCount = 0;
+        logger.info(String.format("[%s]:start", Thread.currentThread().getStackTrace()[1].getMethodName()));
+        SimilarScoreCalculator similarScoreCalculator = new SimilarScoreCalculator();
+
+        //获取分词出现次数
+        String appearCountSql = " SELECT\n" +
+                "  pos_segword as pos_segword ,\n" +
+                "  count(DISTINCT(pos_id)) as appear_count\n" +
+                " FROM\n" +
+                "  pos_word_job_detail\n" +
+                " GROUP BY\n" +
+                "  pos_segword";
+        final Map<String, Integer> wordsAppearCount = new HashMap<>();
+        countJdbcTemplate.query(appearCountSql, new RowCallbackHandler() {
+            @Override
+            public void processRow(ResultSet rs) throws SQLException {
+                wordsAppearCount.put(rs.getString("pos_segword").toLowerCase(), rs.getInt("appear_count"));
+            }
+        });
+
+        //获取分词职位命中次数
+        String hitCountSql = "SELECT\n" +
+                "   pos_segword as pos_segword,\n" +
+                "   job_code,\n" +
+                "   count(*) AS hit_count\n" +
+                "  FROM\n" +
+                "   pos_word_job_detail\n" +
+                "  GROUP BY\n" +
+                "   pos_segword,\n" +
+                "   job_code";
+        String insertSql = "insert into pos_word_lib (pos_segword,job_code,job_name,hit_count,appear_count,hit_rate,similar_score,judge_type,update_time) values (?,?,?,?,?,?,?,?,?)";
+        String updateSql = "update pos_word_lib set hit_count=?,appear_count=?,hit_rate=?,similar_score=?,update_time=? where pos_segword=? and job_code=?";
+        for (Map<String, Object> posSegwordEntity : countJdbcTemplate.queryForList(hitCountSql)) {
+            String posSegword = (String) posSegwordEntity.get("pos_segword");
+            Integer jobCode = (Integer) posSegwordEntity.get("job_code");
+            String jobName = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, jobCode);
+            Integer hitCount = ((Long) posSegwordEntity.get("hit_count")).intValue();
+            Integer appearCount = wordsAppearCount.get(posSegword.toLowerCase());
+            if (appearCount == null) {
+                logger.error("posSegword:" + posSegword + " can not find appearcount");
+                continue;
+            }
+            Float hitRate = (float) hitCount / appearCount;
+            BigDecimal bigDecimal = new BigDecimal(hitRate);
+            hitRate = bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+            int score = similarScoreCalculator.similarScore(hitCount, appearCount);
+            try {
+                countJdbcTemplate.update(insertSql, posSegword, jobCode, jobName, hitCount, appearCount, hitRate, score, JUDGE_TYPE_SYS, new Timestamp(System.currentTimeMillis()));
+                insertCount++;
+            } catch (DataAccessException dae) {
+                if (dae.toString().contains("Duplicate entry")) {
+                    try {
+                        countJdbcTemplate.update(updateSql, hitCount, appearCount, hitRate, score, new Timestamp(System.currentTimeMillis()), posSegword, jobCode);
+                        updateCoute++;
+                    } catch (Exception e) {
+                        logger.error("update pos_segword similar_score fail!", e);
+                        failCount++;
+                    }
+                } else {
+                    logger.error("insert pos_segword similar_score fail!", dae);
+                    failCount++;
+                }
+            }
+        }
+        logger.info(String.format("[%s]:end! insertCount:%s, updateCount:%s, failCount:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), insertCount, updateCoute, failCount));
+    }
+
+    public void judgePosType() {
+        logger.info(String.format("[%s]:start", Thread.currentThread().getStackTrace()[1].getMethodName()));
+        int successCount = 0, failCount = 0;
+//        countJdbcTemplate.execute("truncate table sys_judge_pos_type");
+        countJdbcTemplate.execute("delete from   sys_judge_pos_type");
+        int effectPosCount = baseJdbcTemplate.queryForInt("select count(1) " + fromEffectPosTb);
+        for (int i = 0; i < effectPosCount; i += searchLimit) {
+            List<Map<String, Object>> effectPosList = baseJdbcTemplate.queryForList("select cp.id,pos_name,pos_keyword,pos_type " + fromEffectPosTb + " order by 1 limit ?,?", i, searchLimit);
+            for (Map<String, Object> effectPos : effectPosList) {
+                Integer posId = (Integer) effectPos.get("id");
+                try {
+                    Integer jobCode1 = null, jobCode2 = null, jobCode3 = null;
+                    String jobCode1Name = null, jobCode2Name = null, jobCode3Name = null;
+                    List<Double> jobCodeList = gson.fromJson(ObjectUtils.toString(effectPos.get("pos_type"), ""), List.class);
+                    if (jobCodeList != null) {
+                        if (jobCodeList.size() > 0 && jobCodeList.get(0) != null) {
+                            jobCode1 = jobCodeList.get(0).intValue();
+                            jobCode1Name = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, jobCode1);
+                        }
+                        if (jobCodeList.size() > 1 && jobCodeList.get(1) != null) {
+                            jobCode2 = jobCodeList.get(1).intValue();
+                            jobCode2Name = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, jobCode2);
+                        }
+                        if (jobCodeList.size() > 2 && jobCodeList.get(2) != null) {
+                            jobCode3 = jobCodeList.get(2).intValue();
+                            jobCode3Name = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, jobCode3);
+                        }
+                    }
+                    Set<String> posNames = new HashSet<>();
+                    String posName = ObjectUtils.toString(effectPos.get("pos_name"), "");
+                    posNames.add(posName);
+                    Object posKeywordStr = effectPos.get("pos_keyword");
+                    List<String> posKeywordList = gson.fromJson(ObjectUtils.toString(posKeywordStr, ""), List.class);
+                    if (posKeywordList != null) {
+                        for (String posKeyword : posKeywordList) {
+                            posNames.add(posKeyword);
+                        }
+                    }
+
+                    int isMatchJobCode = MATCH_JOB_NO;
+                    Integer jobCodeSys = null;
+                    String jobCodeSysName = null;
+                    int jobCodeSysScore = 0;
+                    String scoreDetail = null;
+                    Map<Integer, Integer> posTypeScore = similarScoreCalculator.getPosTypeScore(posNames.toArray(new String[posNames.size()]), countJdbcTemplate.getDataSource());
+                    if (!posTypeScore.isEmpty()) {
+                        Map<String, Integer> posNameScore = new HashMap<>();
+                        Map.Entry<Integer, Integer> maxScoreEntry = null;
+                        for (Map.Entry<Integer, Integer> posTypeScoreEntry : posTypeScore.entrySet()) {
+                            if (maxScoreEntry == null) {
+                                maxScoreEntry = posTypeScoreEntry;
+                            } else if (posTypeScoreEntry.getValue() > maxScoreEntry.getValue()) {
+                                maxScoreEntry = posTypeScoreEntry;
+                            }
+                            posNameScore.put(OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, posTypeScoreEntry.getKey()), posTypeScoreEntry.getValue());
+                        }
+                        if (maxScoreEntry != null) {
+                            jobCodeSys = maxScoreEntry.getKey();
+                        }
+                        jobCodeSysName = OptionMap.getValue(OptionMap.OptionType.OPT_POSITION, jobCodeSys);
+                        jobCodeSysScore = maxScoreEntry.getValue();
+                        scoreDetail = gson.toJson(posNameScore);
+                        if (jobCode1 == null && jobCode2 == null && jobCode3 == null) {
+                            isMatchJobCode = MATCH_JOB_NULL;
+                        } else if (jobCodeSys != null && (jobCodeSys.equals(jobCode1) || jobCodeSys.equals(jobCode2) || jobCodeSys.equals(jobCode3))) {
+                            isMatchJobCode = MATCH_JOB_YES;
+                        }
+                    }
+                    baseJdbcTemplate.update("update com_position set pos_type_sys=? where id=?", jobCodeSys, posId);
+                    countJdbcTemplate.update("insert into sys_judge_pos_type (" +
+                                    "pos_id," +
+                                    "pos_name," +
+                                    "pos_keywords," +
+                                    "job_code1," +
+                                    "job_code1_name," +
+                                    "job_code2," +
+                                    "job_code2_name," +
+                                    "job_code3," +
+                                    "job_code3_name," +
+                                    "job_code_sys," +
+                                    "job_code_sys_name," +
+                                    "job_code_sys_score," +
+                                    "score_detail," +
+                                    "is_match_job_code) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            posId,
+                            posName,
+                            posKeywordStr,
+                            jobCode1,
+                            jobCode1Name,
+                            jobCode2,
+                            jobCode2Name,
+                            jobCode3,
+                            jobCode3Name,
+                            jobCodeSys,
+                            jobCodeSysName,
+                            jobCodeSysScore,
+                            scoreDetail,
+                            isMatchJobCode);
+                    successCount++;
+                } catch (Exception e) {
+                    logger.error("Judge type fail! posId:" + posId, e);
+                    failCount++;
+                }
+            }
+            logger.info(String.format("[%s]:finish %s", Thread.currentThread().getStackTrace()[1].getMethodName(), i + searchLimit));
+        }
+        logger.info(String.format("[%s]:end! success_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), successCount, failCount));
+    }
+}

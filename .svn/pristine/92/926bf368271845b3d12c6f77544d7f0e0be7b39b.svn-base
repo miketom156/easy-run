@@ -1,0 +1,148 @@
+package com.job5156.common;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.http.Consts;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.job5156.beans.ServerConfig;
+import com.job5156.beans.ServerConfigLoader;
+import com.job5156.common.util.MD5Builder;
+import com.job5156.vo.api.BaseResult;
+
+/**
+ * 分词组件
+ * Created by pzm on 2015/1/14.
+ */
+public class SegWordComponent {
+	private Logger logger = Logger.getLogger(SegWordComponent.class);
+	
+    private String postUrl = ServerConfigLoader.getConfigByName(ServerConfig.API_SEGMENT_URL);
+    private Gson gson = new Gson();
+    
+    /**
+     * 关键字分词
+     * @param sourceWord
+     * @return
+     */
+    public Set<String> cutWord(String sourceWord) {
+        return cutWord(sourceWord, FilterMode.DEFAULT, false);
+        
+    }
+    
+    /**
+     * 关键字分词
+     * @param sourceWord
+     * 				源关键字
+     * @param modeVal
+     * 				分词方式
+     * @param isMaxWordLength
+     * 				是否采用最长分词，默认false
+     * @return
+     */
+    public Set<String> cutWord(String sourceWord, FilterMode filterMode, boolean isMaxWordLength){
+    	if (sourceWord == null || sourceWord.isEmpty()) {
+            return Collections.emptySet();
+        }
+    	CloseableHttpClient httpClient = HttpClients.createDefault();
+        try {
+            Set<String> rs = new HashSet<>();
+            List<NameValuePair> paramList = Lists.newArrayList();
+            paramList.add(new BasicNameValuePair("authToken", MD5Builder.md5(Constants.API_COMMON_AUTH_KEY, Constants.API_COMMON_AUTH_PASS)));
+            paramList.add(new BasicNameValuePair("keyword", sourceWord));
+            paramList.add(new BasicNameValuePair("modeVal", String.valueOf(filterMode.getValue())));
+            paramList.add(new BasicNameValuePair("isMaxWordLength", String.valueOf(isMaxWordLength)));
+
+            HttpPost httpost = new HttpPost(postUrl);
+            httpost.setEntity(new UrlEncodedFormEntity(paramList, Consts.UTF_8));
+            HttpResponse response = httpClient.execute(httpost);
+            HttpEntity resEntity = response.getEntity();
+            String jsonStr = EntityUtils.toString(resEntity, "utf-8");
+            BaseResult resultVo = gson.fromJson(jsonStr, BaseResult.class);
+            if (resultVo != null && resultVo.getMessage() != null && !resultVo.getMessage().isEmpty()) {
+                String[] rsArray = resultVo.getMessage().isEmpty() ? new String[]{} : resultVo.getMessage().split(";");
+                rs.addAll(Arrays.asList(rsArray));
+            }
+            return rs;
+        } catch (Exception e) {
+            logger.error("cut word fail!word:" + sourceWord, e);
+            return Collections.emptySet();
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+	/**
+	 * <p>
+	 * 关键字过滤方式<br>
+	 * DEFAULT:默认不过滤<br>
+	 * EXIST_IN_MAIN_DICT:过滤词条必须存在主词库中<br>
+	 * </p>
+	 * 
+	 * @author leo
+	 * 
+	 */
+	public enum FilterMode {
+		DEFAULT(0), EXIST_IN_MAIN_DICT(1);
+		
+		private Integer value;
+		
+		public Integer getValue() {
+			return value;
+		}
+		
+		private FilterMode(Integer value){
+			this.value = value;
+		}
+
+		public static FilterMode getInstance(Integer value){
+			if(value != null){
+				for(FilterMode mode : FilterMode.values()) {
+					if(mode.getValue().equals(value))
+						return mode;
+				}
+			}
+			return FilterMode.DEFAULT;
+		}
+	}
+
+    public Set<String> cutWordAndSelf(String sourceWord) {
+        if (sourceWord == null || sourceWord.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> rs = new HashSet<>();
+        rs.add(sourceWord);
+        rs.addAll(cutWord(sourceWord));
+        return rs;
+    }
+
+    public Set<String> cutWordAndSelf(String[] sourceWord) {
+        Set<String> cutSet = new HashSet<>();
+        for (String name : sourceWord) {
+            Set<String> nameCutSet = cutWordAndSelf(name);
+            cutSet.addAll(nameCutSet);
+        }
+        return cutSet;
+    }
+
+}

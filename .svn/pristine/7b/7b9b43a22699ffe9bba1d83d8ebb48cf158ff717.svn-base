@@ -1,0 +1,312 @@
+package com.job5156.common;
+
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+
+/**
+ * 常量配置类
+ * 
+ * @author leo
+ * 
+ */
+public class Constants {
+	public static final String MAIL_ADDRESS_SEPARATE_CHAR = ";"; 			// 多个邮件地址分隔符
+	public static final Integer MAIL_TYPE_SIMPLIFIED = 0; 					// 简体邮件
+	public static final Integer MAIL_TYPE_TRADITIONAL = 1; 					// 繁体邮件
+
+	public static final Integer MAIL_SEND_WAIT = 0; 						// 等待发送
+	public static final Integer MAIL_SEND_SUCCESS = 1; 						// 发送成功
+	public static final Integer MAIL_SEND_FAIL = 2; 						// 发送失败
+	
+	public static final Integer MAIL_SUBSCRIBE_YES = 1;						// 邮件订阅状态[已订阅]
+	public static final Integer MAIL_SUBSCRIBE_NO = 0;						// 邮件订阅状态[未订阅]
+	
+	public static final String EYAS_ACTIVE_TIME = "2014-01";
+	
+	public static final Integer MAIL_TASK_PER_APPLY_JOB = 1; 				// 个人应聘发送求职简历
+	public static final Integer MAIL_TASK_PER_SEND_OUT = 2; 				// 个人外发简历
+	public static final Integer MAIL_TASK_PER_CONNECT_REGISTER = 3; 		// 个人第三方注册
+	public static final Integer MAIL_TASK_PER_FORGET_PASS = 4; 				// 个人忘记密码
+	public static final Integer MAIL_TASK_PER_REGISTER = 5; 				// 个人注册
+	public static final Integer MAIL_TASK_PER_MAIL_VALID = 6; 				// 个人邮箱确认
+	public static final Integer MAIL_TASK_PER_RESERVE_POS = 7; 				// 个人预约职位
+	public static final Integer MAIL_TASK_PER_RESERVE_COM = 8; 				// 个人预约企业
+
+	public static final Integer MAIL_TASK_COM_REGISTER = 1001; 				// 企业注册
+	public static final Integer MAIL_TASK_COM_SEND_FORWARD = 1002; 			// 企业转发简历
+	public static final Integer MAIL_TASK_COM_INVITE_NOTIFY = 1003; 		// 企业邀请面试通知
+	public static final Integer MAIL_TASK_COM_VIDEO_INVITE = 1004; 			// 企业视频面试
+	public static final Integer MAIL_TASK_COM_VIDEO_NOTIFY = 1005; 			// 企业视频面试通知
+    public static final Integer MAIL_TASK_COM_TEST_INVITE = 1006;		//企业测评邀请
+    public static final Integer MAIL_TASK_COM_ASK_PER_SEND_RESUME = 1007; //企业请求个人发正式简历
+    public static final Integer MAIL_TASK_COM_APPLY_CHANGE_NAME = 1008; //企业申请修改企业名称
+    
+    public static final Integer MAIL_TASK_ACT_AWARDS_NOTIFY = 1100;		//抽奖活动生成奖池通知
+    public static final Integer MAIL_TASK_ACT_FAIR_2015_NOTIFY = 1101;	//制造业专题客户联系销售顾问
+	public static final Integer MAIL_TASK_SYS_FEEDBACK_REPLY = 2001; 		// 后台投诉反馈回复
+	public static final Integer MAIL_TASK_SYS_COM_RIGHT_AUDIT = 2002; 		// 后台企业会员开通
+	public static final Integer MAIL_TASK_SYS_POSITION_AUDIT = 2003; 		// 后台职位信息审查
+	public static final Integer MAIL_TASK_SYS_RECOMMEND_PER_TO_COM = 2004; 	// 后台推荐人才给企业
+	public static final Integer MAIL_TASK_SYS_RECOMMEND_POS_TO_PER = 2005; 	// 后台推荐职位给个人
+    public static final Integer MAIL_TASK_SYS_COM_RETURN_POINTS = 2006;			//后台给企业返还点数-给企业发邮件
+    public static final Integer MAIL_TASK_SYS_COM_RETURN_POINTS_SALER = 2007; 	//后台给企业返还点数-给招聘顾问发邮件
+    public static final Integer MAIL_TASK_SYS_COM_RIGHT_AUDIT_SALER = 2008;	//企业会员开通-给招聘顾问发邮件 
+    public static final Integer MAIL_TASK_SYS_RESUME_AUDIT = 2009;	//简历信息审查
+    public static final Integer MAIL_TASK_SYS_ADD_RESUME_REMIND = 2010;  //后台收录个人简历提醒
+
+    /** 每一类分配使用连续的20个流水序号，退订时使用同类的第一个ID,统计时可用enum把同一区间归为一组 **/
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND = 3010;     // 系统根据个人求职意向发送职位推荐 [3010-3129]
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_D1 = 3011;  // 系统根据个人求职意向发送职位推荐(1天未登陆)
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_D3 = 3012;  // 系统根据个人求职意向发送职位推荐(3天未登陆)
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_D7 = 3013;  // 系统根据个人求职意向发送职位推荐(7天未登陆)
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_D15 = 3015; // 系统根据个人求职意向发送职位推荐(15天未登陆)
+
+    public static final Integer MAIL_TASK_SYSTEM_POS_SUBSCRIBE_1 = 3030; // 系统根据职位搜索器发送职位推荐 [3030-3049]
+    public static final Integer MAIL_TASK_SYSTEM_POS_SUBSCRIBE_3 = 3031; // 系统根据职位搜索器发送职位推荐 [3030-3049]
+    public static final Integer MAIL_TASK_SYSTEM_POS_SUBSCRIBE_7 = 3032; // 系统根据职位搜索器发送职位推荐 [3030-3049]
+
+    public static final Integer MAIL_TASK_SYSTEM_RES_SUBSCRIBE = 3050; // 系统根据简历搜索器发送简历推荐 [3050-3069]
+    public static final Integer MAIL_TASK_SYSTEM_COM_RECEIVE_RES_NUM_REMIND = 3070; // 企业收到投递简历数量过少邮件提醒
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE = 3100;     // 给1.5年内未登录过的个人用户发职位推荐 [3100-3129]
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE_P1 = 3101;  // 给1.5年内未登录过的个人用户发职位推荐(15-273天未登陆)
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE_P2 = 3102;  // 给1.5年内未登录过的个人用户发职位推荐(274-540天未登陆)
+
+    public static final Integer MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN = 3130;      // 系统发送长期未登陆邮件 [3130-3149]
+    public static final Integer MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D30 = 3131;  // 系统发送长期未登陆邮件(30天) [3130-3149]
+    public static final Integer MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D90 = 3132;  // 系统发送长期未登陆邮件(90天) [3130-3149]
+    public static final Integer MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D180 = 3133; // 系统发送长期未登陆邮件(180天) [3130-3149]
+
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT = 3150;     // 系统简历不完善提醒邮件 [3150-3169]
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D1 = 3151;     // 系统简历不完善提醒邮件(1天)
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D15 = 3160;     // 系统简历不完善提醒邮件(15天)
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D30 = 3161;     // 系统简历不完善提醒邮件(30天)
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D90 = 3162;     // 系统简历不完善提醒邮件(90天)
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D180 = 3163;     // 系统简历不完善提醒邮件(180天)
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D360 = 3164;     // 系统简历不完善提醒邮件(360天)
+    public static final Integer MAIL_TASK_SYSTEM_COMRIGHT_EXPIRE_D15 = 3165;       // 企业会员服务到期提前(15天)提醒
+
+    public static final Integer MAIL_TASK_SYSTEM_RESUME_VIEWED = 3170;          // 系统发送企业查看了个人简历邮件 [3170-3189]
+    public static final Integer MAIL_TASK_SYSTEM_BIRTHDAY_WISH = 3190;          // 系统发送生日祝福邮件
+    public static final Integer MAIL_TASK_PER_LOGIN_FAILURE = 3210;             // 个人用户登录失败提醒找回密码
+    public static final Integer MAIL_TASK_COM_LOGIN_DIFF_IP = 3230;             // 企业用户最近两次登录的IP不同
+    public static final Integer MAIL_TASK_PER_NOT_RESUME = 3240;                // 个人用户没有填写简历
+    public static final Integer MAIL_TASK_PER_LESS_APPLY_SEND_POS = 3250;       // 给投递简历过少的个人用户发职位推荐
+    public static final Integer MAIL_TASK_PER_INTERVIEW_LESS = 3260;            // 个人用户收到面试邀请很少的提醒邮件
+    public static final Integer MAIL_TASK_COM_SCHOOL_RECRUIT = 3270;            // 企业校园招聘ABC
+
+	public static final Integer MAIL_TASK_COM_POS_EXPIRE = 3300;//企业职位到期提醒邮件
+	public static final Integer MAIL_TASK_COM_USER_MODIFY = 3301;//企业中心－设置－修改账号信息邮件
+	
+	public static final Integer MAIL_TASK_SYSTEM_YZ_REMAND = 3401;//永州站点开通提醒邮件
+    public static final Integer MAIL_TASK_SYSTEM_COM_POS_AUDIT_REMAND = 3501;//企业职位审核结果提醒邮件
+    public static final Integer MAIL_TASK_SYSTEM_RES_RECOMMEND = 3502;	//根据职位匹配推荐简历邮件
+    
+	public static final Integer MAIL_TASK_VISITOR_SUBSCRIBE = 3400;//智通才富专题订阅
+
+
+    //使用第三方API发送的从4000开始
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI = 4000;// 使用[webpower]给1.5年内未登录过的个人用户发职位推荐
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI_P1 = 4001;// 使用[webpower]给(15-273)天未登录过的个人用户发职位推荐
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI_P2 = 4002;// 使用[webpower]给(273-254)天未登录过的个人用户发职位推荐
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI_P3 = 4003;// 使用[webpower]给(15-175)天未登录过的个人用户发职位推荐
+
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_EYAPI_P1 = 4201;// 使用[EASEYE]给(15-175)天未登录过的个人用户发推荐职位
+    public static final Integer MAIL_TASK_SYSTEM_POS_RECOMMEND_EYAPI_P2 = 4202;// 使用[EASEYE]给(175-254)天未登录过的个人用户发推荐职位
+
+    public static final Integer MAIL_TASK_ACT_JOB_PLAN_SIGNUP = 7001;	// 问卷调查活动报名
+	
+	public static final Integer MAIL_TASK_PROJ_IRC_PER_REGISTER = 8001;	// 互动招聘个人简历注册
+    public static final Integer MAIL_TASK_PROJ_OFFICIAL_FEEDBACK = 8002; //集团官网-咨询反馈
+
+	public static final Integer MAIL_TASK_API_MOBILE_PER_APPLY_JOB = 9001; 		// 手机客户端个人发送职位申请
+	public static final Integer MAIL_TASK_API_MOBILE_PER_BESPEAK_POS = 9002; 	// 手机客户端个人预约职位
+	public static final Integer MAIL_TASK_API_MOBILE_PER_OUT_SEND = 9003; 		// 手机客户端个人外发简历
+	public static final Integer MAIL_TASK_API_MOBILE_PER_FORGET_PASS = 9004; 	// 手机客户端个人找回密码
+	public static final Integer MAIL_TASK_API_MOBILE_PER_USER_REGISTER = 9005; 	// 手机客户端个人注册
+	
+	public static final Integer MAIL_TASK_API_WEIXIN_PER_USER_REGISTER = 9050;  // 微信注册个人账号
+	public static final Integer MAIL_TASK_API_WEIXIN_WAIBAO_RETRIEVE_PASSWORD = 9060;  //外包网服务号找回密码
+	
+	public static final String REDIS_KEY_POS_HOT_DEGREE_PREFIX = "pos:hot:degree:prefix:";		//职位热门程度前缀 
+	
+	public static final String VISIT_DOMAIN = "visit_domain";		// 主访问域名
+	public static final String IMAGE_DOMAIN = "image_domain";		// 图片服务器域名
+	public static final String SEARCH_DOMAIN = "search_domain";		// 搜索服务器域名
+	public static final String PERSON_DOMAIN = "person_domain";		// 个人服务器域名
+	public static final String COMPANY_DOMAIN = "company_domain";	// 企业服务器域名
+	
+	public static final String API_COMMON_AUTH_KEY = "chitonekey";	// 网站公共接口调用认证KEY
+	public static final String API_COMMON_AUTH_PASS = "chitonepass";// 网站公共接口调用认证PASS
+	
+	public static final String UNSUBSCRIBE_PRIVATE_KEY = "mailback!s%&^#@";		// 邮件退订加密密钥
+	
+	public static final String API_POS_SEARCH_URL = "http://192.168.2.35:8080/open/api/common/pos_search.json";		//职位搜索接口调用地址
+	public static final String API_RESUME_SEARCH_URL = "http://www.job5156.com/open/api/common/resume_search.json";	//简历搜索接口调用地址
+	 
+	public static final String FILE_POS_AREICLE_CONSULATION = "pos:article:consultation:";         //后台生成文章的名称
+	
+	// ==============================redis服务器的KEY===============================
+	public static final String INIT_EFFECTIVE_POS_KEY = "init:effective:pos:key";		// 初始化有效的职位
+	public static final String INIT_EFFECTIVE_RESUME_KEY = "init:effective:resume:key";		// 初始化有效的简历
+    public static final String ACT_RESUMECONTEST_REDISKEY = "act:resumeContest:jingzhou:upload:userid";//荆州简历大赛
+    public static final String POS_AREICLE_CONSULATION_REDISKEY = "pos:article:consultation";//职位文章咨询链接
+    public static final String REDIS_KEY_POS_NAME_LEXICON_MAP = "pos:name:lexicon:map"; //同类别职位名称，存储MAP结构
+    public static final String REDIS_KEY_POS_RANK_LEXICON_MAP = "pos:rank:lexicon:map"; //同类别职级名称，存储MAP结构
+    public static final String REDIS_KEY_POS_CATE_LEXICON_MAP = "pos:cate:lexicon:map"; //岗位类别对应关联词，存储MAP结构
+    public static final String REDIS_KEY_RECOMMENDED_POS_ID_PREFIX = "recommended:pos:id:"; //系统推荐简历给企业，已推荐过的企业id对应简历id历史
+    public static final String REDIS_KEY_RECOMMENDED_COMPOS_ID_NEW_RELEASE = "recommended:compos:id:new:release"; //系统推荐简历，新发布职位信息，两天执行一次
+    public static final String REDIS_KEY_RECOMMENDED_COMPOS_ID_THREE_RUN = "recommended:compos:id:three:run"; //系统推荐简历，第二类职位，三天执行一次
+	public static final String REDIS_KEY_FILTER_QQ_MAI="filter:qq:mail:suffix:list";//QQ邮箱和foxmail企业邮箱后缀 存储Zset结构
+	public static final String REDIS_KEY_FILTER_ALI_CLOUD_MAI="filter:ali-cloud:mail:suffix:list"; //阿里云企业邮箱的邮件域名后缀 存储Zset结构
+	
+    // ====================================END=====================================
+	
+    // ========== 职位状态枚举  ========== Start
+	public static final int POS_STATUS_POST = 9; //正在招聘(已通过审核)：已审核的职位，如果企业再次修改内容的话，变成状态5重新审核
+	public static final int POS_STATUS_POST_WAIT= 5; //正在招聘(等待审核)：用户工作时间发布的职位，通过审核后变成状态9
+	public static final int POS_STATUS_WAIT_FOR_FINISH = 1; //已审核待完善：后台进行了审核，但有部分信息未完善的，变成此状态，当此状态的职位过了两天（缓冲期）还没有完善的话，变成状态 -15，此状态下的职位仍然可以进行搜索及招聘操作，若用户完善职位信息后状态变成5
+	public static final int POS_STATUS_WAIT_FOR_AUDIT =0; //待审核：用户非工作时间发布的职位，通过审核后变成状态9
+	public static final int POS_STATUS_STOP = -1; //停止招聘：企业因招聘需要，停止招聘的职位，非试用或正式会员发布的职位默认为此状态
+	public static final int POS_STATUS_COM_EXPIRED = -3; //过期：企业过期的时候职位会变成这个状态，当企业重新开通的时候，将这个状态的职位自动修改为5
+	public static final int POS_STATUS_EXPIRED = -5; //过期：职位到期的时候职位会变成这个状态
+	public static final int POS_STATUS_TIMEOUT = -15; //超时屏蔽：当 1 状态的职位过了两天用户还没有修改的话，变成此状态，用户修改后变成状态0
+	public static final int POS_STATUS_DENIED = -19; //未通过审核：有问题的职位，用户修改后变成状态0
+    public static final int POS_STATUS_DELETED = -99; // 删除：回收站，企业将职位进行删除（放入回收站）操作，状态变成此状态
+	// ========== 职位状态枚举  ========== End
+
+    
+	// ================网站职位与简历存量统计数据搜索器链接================
+    public static final String API_POS_CATE_URL = "http://192.168.2.35:8080/open/api/common/pos_count.json";
+    public static final String API_RESUME_CATE_URL = "http://192.168.2.35:8080/open/api/common/resume_count.json";
+	
+//	public static final String API_POS_SEARCH_URL = "http://localhost/open/api/common/pos_search.json";		//职位搜索接口调用地址
+//	public static final String API_RESUME_SEARCH_URL = "http://localhost/open/api/common/resume_search.json";	//简历搜索接口调用地址
+	
+	//public static final String PATTERN_EMAIL = "\\w+@(\\w+.)+[a-z]{2,3}";
+	public static final String PATTERN_EMAIL = "^(([a-z]|\\d)([a-z]|\\d|-|\\.|_|~)*([a-z]|\\d))@((([a-z]|\\d)|(([a-z]|\\d)([a-z]|\\d|-|\\.|_|~)*([a-z]|\\d)))\\.)+(([a-z])|(([a-z])([a-z]|\\d|-|\\.|_|~)*([a-z])))$";
+
+	public static final String PATTERN_MOBILE = "1[3-8]\\d{9}";
+	public static final String PATTERN_DATE = "(19|20)\\d{2}-(0?\\d|1[012])-(0?\\d|[12]\\d|3[01])";
+	/**系统订阅邮件配置，需要同步eyas项目配置**/
+	public static final Map<Integer, Map<String, String>> mailTypeConfigMap = Maps.newHashMap();
+	/**邮件任务类型**/
+	public static final Map<Integer, String> sendMailTaskType = Maps.newHashMap();
+    /** 邮件TASKID对应的KEY  */
+    public static final Map<Integer, Integer> taskIdGroup = Maps.newHashMap();
+	
+	static {
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_POS_RECOMMEND, setSubscribeMap("email", "emailPosRecommend"));
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_RESUME_VIEWED, setSubscribeMap("email", "emailResumeRemind"));
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_BIRTHDAY_WISH, setSubscribeMap("email", "birthdayWish"));
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN, setSubscribeMap("email", "longTermNoLogin"));
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT, setSubscribeMap("email", "resumeNotPerfect"));
+		mailTypeConfigMap.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI, setSubscribeMap("email", "posRecommendByApi"));
+
+		/**邮件任务类型**/
+		sendMailTaskType.put(MAIL_TASK_PER_APPLY_JOB, "个人应聘发送求职简历");
+		sendMailTaskType.put(MAIL_TASK_PER_SEND_OUT, "个人外发简历");
+		sendMailTaskType.put(MAIL_TASK_PER_CONNECT_REGISTER, "个人第三方注册");
+		sendMailTaskType.put(MAIL_TASK_PER_FORGET_PASS, "个人忘记密码");
+		sendMailTaskType.put(MAIL_TASK_PER_REGISTER, "个人注册");
+		sendMailTaskType.put(MAIL_TASK_PER_MAIL_VALID, "个人邮箱确认");
+		sendMailTaskType.put(MAIL_TASK_PER_RESERVE_POS, "个人预约职位");
+		sendMailTaskType.put(MAIL_TASK_PER_RESERVE_COM, "个人预约企业");
+		sendMailTaskType.put(MAIL_TASK_COM_REGISTER, "企业注册");
+		sendMailTaskType.put(MAIL_TASK_COM_SEND_FORWARD, "企业转发简历");
+		sendMailTaskType.put(MAIL_TASK_COM_INVITE_NOTIFY, "企业邀请面试通知");
+		sendMailTaskType.put(MAIL_TASK_COM_VIDEO_INVITE, "企业视频面试");
+		sendMailTaskType.put(MAIL_TASK_COM_VIDEO_NOTIFY, "企业视频面试通知");
+		sendMailTaskType.put(MAIL_TASK_SYS_FEEDBACK_REPLY, "后台投诉反馈回复");
+		sendMailTaskType.put(MAIL_TASK_SYS_COM_RIGHT_AUDIT, "后台企业会员开通");
+		sendMailTaskType.put(MAIL_TASK_SYS_POSITION_AUDIT, "后台职位信息审查");
+        sendMailTaskType.put(MAIL_TASK_SYS_RESUME_AUDIT, "简历信息审查");
+        sendMailTaskType.put(MAIL_TASK_ACT_AWARDS_NOTIFY, "抽奖活动生成奖池通知");
+        sendMailTaskType.put(MAIL_TASK_ACT_FAIR_2015_NOTIFY, "制造业专题客户联系销售顾问");
+
+		sendMailTaskType.put(MAIL_TASK_SYS_RECOMMEND_PER_TO_COM, "后台推荐人才给企业");
+		sendMailTaskType.put(MAIL_TASK_SYS_RECOMMEND_POS_TO_PER, "后台推荐职位给个人");
+		sendMailTaskType.put(MAIL_TASK_API_MOBILE_PER_APPLY_JOB, "手机客户端个人发送职位申请");
+		sendMailTaskType.put(MAIL_TASK_API_MOBILE_PER_BESPEAK_POS, "手机客户端个人预约职位");
+		sendMailTaskType.put(MAIL_TASK_API_MOBILE_PER_OUT_SEND, "手机客户端个人外发简历");
+		sendMailTaskType.put(MAIL_TASK_API_MOBILE_PER_FORGET_PASS, "手机客户端个人找回密码");
+		sendMailTaskType.put(MAIL_TASK_API_MOBILE_PER_USER_REGISTER, "手机客户端个人注册");
+
+        sendMailTaskType.put(MAIL_TASK_PER_LOGIN_FAILURE,"个人用户登录失败提醒找回密码");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND,"系统根据个人求职意向发送职位推荐");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_D1,"系统根据个人求职意向发送职位推荐(1天未登陆)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_D3,"系统根据个人求职意向发送职位推荐(3天未登陆)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_D7,"系统根据个人求职意向发送职位推荐(7天未登陆)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_D15,"系统根据个人求职意向发送职位推荐(15天未登陆)");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN,"系统发送长期未登陆邮件");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D30,"系统发送长期未登陆邮件(30天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D90,"系统发送长期未登陆邮件(90天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D180,"系统发送长期未登陆邮件(180天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_LONG_TERM_NO_LOGIN_D180,"系统发送长期未登陆邮件(180天)");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT,"系统简历不完善提醒邮件");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D1,"系统简历不完善提醒邮件(1天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D15,"系统简历不完善提醒邮件(15天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D30,"系统简历不完善提醒邮件(30天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D90,"系统简历不完善提醒邮件(90天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D180,"系统简历不完善提醒邮件(180天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_NOT_PERFECT_D360,"系统简历不完善提醒邮件(360天)");
+        
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_RESUME_VIEWED, "系统发送简历被查看提醒邮件");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE,"给1.5年内未登录过的个人用户发职位推荐");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE_P1,"给1.5年内未登录过的个人用户发职位推荐(15-273天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_LARGE_P2,"给1.5年内未登录过的个人用户发职位推荐(274-540天)");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI,"使用[webpower]给1.5年内未登录过的个人用户发职位推荐");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI_P1,"使用[webpower]给1.5年内未登录过的个人用户发职位推荐(15-540天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_WPAPI_P3,"使用[webpower]给1.5年内未登录过的个人用户发职位推荐(15-175天)");
+        
+        sendMailTaskType.put(MAIL_TASK_COM_POS_EXPIRE, "企业职位到期提醒邮件");
+        sendMailTaskType.put(MAIL_TASK_VISITOR_SUBSCRIBE, "智通才富专题订阅邮件");
+
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_SUBSCRIBE_1, "系统根据职位搜索器发送职位推荐(发送周期1天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_SUBSCRIBE_3, "系统根据职位搜索器发送职位推荐(发送周期3天)");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_SUBSCRIBE_7, "系统根据职位搜索器发送职位推荐(发送周期7天)");
+        
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_EYAPI_P1,"使用[EASEYE]给(15-175)天未登录过的个人用户发推荐职位");
+        sendMailTaskType.put(MAIL_TASK_SYSTEM_POS_RECOMMEND_EYAPI_P2,"使用[EASEYE]给(175-540)天未登录过的个人用户发推荐职位");
+        sendMailTaskType.put(MAIL_TASK_PER_NOT_RESUME,"个人用户没有填写简历");
+        sendMailTaskType.put(MAIL_TASK_PER_LESS_APPLY_SEND_POS,"给投递简历过少的个人用户发职位推荐");
+        sendMailTaskType.put(MAIL_TASK_PER_INTERVIEW_LESS,"个人用户收到面试邀请很少的提醒邮件");
+        sendMailTaskType.put(MAIL_TASK_COM_SCHOOL_RECRUIT,"企业校园招聘ABC");
+
+
+	}
+	
+    public static Map<String, String> setSubscribeMap(final String mainType, final String subType) {
+        return ImmutableMap.of(
+            "mainType", mainType,
+            "subType", subType
+        );
+    }
+
+    //CSV格式 （| 为分隔 ^ 为包围内容）
+    // 例： name |^[{"city":"dongguan"}]^
+    public static final String CSV_SEPARATOR = "|";      //csv separator
+    public static final String CSV_ENCLOSURE = "^";     //csv enclosure
+
+    //个人及企业行为日志
+    public static final String LOG_ACTION_PER_LOGIN_FAILURE = "per_login_failure";//个人登录失败
+    public static final String LOG_ACTION_COM_LOGIN_FAILURE = "com_login_failure";//企业登录失败
+    public static final String LOG_ACTION_PER_RESET_PASSWORD_APPLY = "per_reset_password_apply";//个人申请重置密码
+
+    public static final String TASK_UPLOAD_START_FLAG = "task:upload:start:flag"; //是否执行上传程序的标志，Set类型，只有在这个set里面的进程才会运行
+    public static final String REDIS_KEY_SAVE_FILE_ICP_PATH = "save:file:icp:path"; //生成的ICP文件路径，保存为sortedSet
+    public static final String REDIS_KEY_COM_LESS_RECEIVE_RESUME_LIST = "com:less:receive:resume:lost";		//收到的简历太少的企业列表
+
+    public static final String POS_COUNT_STATIS_TAOLEBEL_POS = "使用淘标签的职位数";
+    public static final String POS_COUNT_STATIS_EFFECT_POS = "有效职位数";
+
+    public static final Integer POS_TYPE_ONLINE = 1;	//网络职位
+    public static final Integer POS_TYPE_OFFLINE = 2; 	//招聘会职位
+    
+}

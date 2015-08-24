@@ -1,0 +1,670 @@
+package com.job5156.common;
+
+import org.apache.commons.lang.StringUtils;
+
+
+/**
+ * 枚举配置
+ * 
+ * @author leo
+ * 
+ */
+public class CommonEnum {
+
+	/**
+	 * 企业状态
+	 * @author leo
+	 *
+	 */
+	public enum CompanyStatus {
+		REGISTER(0, "新注册"),
+		OPENED(1, "已开通"),
+		COMMON(2, "公共库企业"),
+		LOCKED(-1, "被锁定"),
+		INVALID(-2, "作废"),
+		UNLAW(-3, "非法企业"),
+		DELETED(-4, "已删除");
+		
+		private int value;
+		private String name;
+		
+		public int getValue() {
+			return value;
+		}
+
+		public String getName() {
+			return name;
+		}
+		
+		private CompanyStatus(int value, String name) {
+			this.value = value;
+			this.name = name;
+		}
+		
+		public static String getNameByValue(int value) {
+			for(CompanyStatus status : CompanyStatus.values()) {
+				if(status.getValue() == value)
+					return status.getName();
+			}
+			return "";
+		}
+	}
+
+	/**
+	 * 邮件服务器类型
+	 * 
+	 * @author leo
+	 * 
+	 */
+	public enum MailServer {
+		MAIN("main"), EXCHANGE("exchange"), BAK1("bak1"), BAK2("bak2"),THIRD_EASEYE("easeye"), QQ_FOX("qqfox");
+
+		private String name;
+
+		public String getName() {
+			return name;
+		}
+
+		private MailServer(String name) {
+			this.name = name;
+		}
+	}
+	
+	/**
+	 * REDIS服务器节点
+	 * 
+	 * @author leo
+	 * 
+	 */
+	public enum RedisServer {
+		MASTER1("master1"), MASTER2("master2");
+
+		private String name;
+
+		public String getName() {
+			return name;
+		}
+
+		private RedisServer(String name) {
+			this.name = name;
+		}
+	}
+	
+	/**
+	 * 邮件统计栏目
+	 * @author leo
+	 *
+	 */
+	public enum MailCount {
+		TOTAL("total", "应发邮件总数"),
+		EMAIL_ADDR_FILTER("email_addr_filter", "邮件地址过滤"),
+		POS_NUM_NOT_ENOUGH("pos_num_not_enough", "找不到对应的职位"),
+		RESUME_NUM_NOT_ENOUGH("resume_num_not_enough", "简历列表不足"),
+		PER_RESUME_NOT_EXIST("per_resume_not_exist", "简历信息不存在"),
+		NOT_FILL_PER_INTENT("not_fill_per_intent", "未填写求职意向"),
+		SEARCHER_IS_EMPTY("searcher_is_empty", "搜索的结果为空"),
+		SEND_SUCCESS("send_success", "发送成功总数"),
+		SEND_FAIL("send_fail", "发送失败总数"),
+        BEGIN_ID("beginId","开始发送的记录ID"),
+        SEND_LIMIT_NUM("send_limit_num","本次任务限制的最大发送数"),
+        ERROR_USER_ID("error_user_id","出错时的个人ID"),
+        EMIAL_HARD_BOUNCE_FILTER("email_hardbounce_filter","邮件硬退信过滤"),
+		POS_NAME_IS_EMPTY("pos_name_is_empty", "职位名称为空");
+		
+		private String type;
+		private String name;
+		
+		public String getType() {
+			return type;
+		}
+
+		public String getName() {
+			return name;
+		}
+		
+		private MailCount(String type, String name) {
+			this.type = type;
+			this.name = name;
+		}
+		
+		public static String getNameByValue(String type) {
+			for(MailCount count : MailCount.values()) {
+				if(count.getType().equals(type)){
+					return count.getName();
+				}
+			}
+			return "";
+		}
+	}
+	
+    /**
+     * 地区类型
+     * @author leo
+     *
+     */
+    public enum AreaType {
+    	PROV, CITY, TOWN;
+    }
+    
+    /**
+    * 简历状态枚举 
+    * @author xh 
+    * @date 2013-9-11 下午3:24:54 
+    *
+     */
+    public enum ResumeStatus {
+    	/**
+    	 * 被后台用户删除
+    	 */
+    	SYS_DELETE(-12, "被后台用户删除"),
+
+    	/**
+    	 * 被用户自己删除
+    	 */
+    	USER_DELETE(-11, "被用户自己删除"),
+
+    	/**
+    	 * 自杀式简历
+    	 */
+    	SUICIDE(-10, "自杀式简历"),
+
+    	/**
+    	 * 封锁
+    	 */
+    	LOCK(-9, "封锁"),
+
+        /**
+         * 机器审核，有敏感字
+         */
+        DUBIOUS(-8, "有敏感字"),
+
+    	/**
+    	 * 审核不合格
+    	 */
+    	AUDIT_FAILURE(-3, "审核不合格"),
+
+    	/**
+    	 * 未开通，待审核
+    	 */
+    	UNAUTHORIZE(-1, "未开通"),
+
+    	/**
+    	 * 未完善
+    	 */
+    	UNPERFECT(0, "未完善"),
+
+    	/**
+    	 * 临时开通
+    	 */
+    	TEMPAUTHORIZE(1, "暂时开通"),
+
+    	/**
+    	 * 已开通
+    	 */
+    	AUTHORIZED(10, "已开通");
+    	
+    	private Integer value;
+    	private String descript;
+    	
+    	public Integer getValue() {
+			return value;
+		}
+    	
+    	public static ResumeStatus getResumeStatusForValue(Integer value) {
+			if(value == null)
+				return ResumeStatus.UNPERFECT;
+			
+			for(ResumeStatus status : values()) {
+				if(status.getValue().intValue() == value.intValue())
+					return status;
+			}
+			return ResumeStatus.UNPERFECT;
+		}
+
+		private ResumeStatus(Integer value, String descript) {
+    		this.value = value;
+    		this.descript = descript;
+    	}
+
+		@Override
+		public String toString() {
+			return descript;
+		}
+    }
+    
+    /**
+     * 购买状态
+     * @author leo
+     *
+     */
+    public enum BuyFlag {
+    	/**
+    	 * 免费
+    	 */
+    	FREE(0),
+    	/**
+    	 * 付费
+    	 */
+    	PAY(1);
+    	
+    	private final int key;
+
+        public int getKey() {
+            return key;
+        }
+        
+        private BuyFlag(int k){
+        	this.key = k;
+        }
+    }
+    
+    /**
+     * OPENCC简繁体转换类型
+     * @author leo
+     *
+     */
+    public enum ConvertType {
+    	S2T("s2t", "简体->繁体"), 
+    	T2S("t2s", "繁体->简体"),
+    	S2TW("s2tw", "简体->台湾正体"),
+    	TW2S("tw2s", "台湾正体->简体"),
+    	S2HK("s2hk", "简体->香港繁体"),
+    	HK2S("hk2s", "香港繁体->简体"),
+    	S2TWP("s2twp", "简体->台湾正体标准"),
+    	TW2SP("tw2sp", "台湾正体标准->简体");
+    	
+    	private String name;
+    	private String descript;
+    	
+        public String getName() {
+			return name;
+		}
+
+		public String getDescript() {
+			return descript;
+		}
+
+		private ConvertType(String name, String descript){
+        	this.name = name;
+        	this.descript = descript;
+        }
+		
+		public static ConvertType getInstance(String name){
+			for(ConvertType convertType : ConvertType.values()) {
+	            if(StringUtils.equalsIgnoreCase(convertType.getName(), name)){
+	            	return convertType;
+	            }
+	        }
+			return null;
+		}
+    }
+
+    /**
+     *
+     * 简历来源
+     * @author xh
+     * @date 2014-2-26 下午4:10:00
+     *
+     */
+    public enum ComeFrom {
+        WEB(0, "网络注册"),
+        SUN(2, "阳光网"),
+        AD(3, "直推广告"),
+        GOOGLE(4, "Google"),
+        BAIDU(5, "Baidu"),
+        AD2(6, "直推广告2"),
+        AD3(7, "直推广告3"),
+        AD8(8, "51注册"),
+        SITE_REG(20, "现场录入"),
+        INPUTFVIP(30, "现场VIP导入"),
+        VIP(31, "VIP录入"),
+        SQSM(40, "十全十美注册"),
+        LINGXIUGAOJI(50, "领袖高级人才导入"),
+
+        IT_INDUSTRY(60, "IT行业"),
+        HARDWARE_MOULD_INDUSTRY(61, "五金模具行业"),
+        ELECTRONICS_INDUSTRY(62, "电子电器行业"),
+        PRINT_PACKAGE_INDUSTRY(63, "印刷包装行业"),
+        HOTEL_TOURING_INDUSTRY(64, "旅游酒店行业"),
+        SCHOOL(65, "校园频道"),
+        CAREERGO_CB(70, "事业起点合作"),
+
+        JOBCN_REG(100, "卓博(jobcn)导入"),
+        JOB51_REG(101, "前程无忧(51job)导入"),
+        CJOL(102, "中国人才热线(cjol)导入"),
+        JOBSKY(103, "博天简历(job-sky)导入"),
+        ZHHR(104, "珠海简历(zhhr)导入"),
+        HNRCSC(105, "湖南人才网(hnrcsc)导入"),
+        CHINAHR(106, "中华英才网(Chinahr)导入"),
+        HRM(107, "联英人才网(hrm)导入"),
+        JOBAAA(108, "JOBAAA导入"),
+        CS(109, "长沙导入"),
+        NC(110, "南昌导入"),
+        ZHAOPIN(111, "智联招聘(zhaopin)导入"),
+        FRRC(112, "芙蓉人才网(frrc)导入"),
+        JOB168(113, "南方人才网(job168)导入"),
+        CQRC(114, "重庆人才网(cqrc)导入"),
+        CQJOB(118, "重庆人才网(cqjob)导入"),
+        JXRC(119, "江西人才网(jxrencai)导入"),
+        ZS(120, "中山(智海)简历"),
+        JM(121, "江门(新会)简历"),
+        FS_0757RC(122, "佛山(大佛山)简历"),
+        NB_NBRC(123, "宁波人才网(nbrc)"),
+        JOB001(124, "国际人才网(job001.cn)"),
+        CARJOB(125, "中国汽车人才网导入(http://www.carjob.com.cn)"),
+        CSHR(126, "长沙人才网导入(http://www.cshr.com.cn)"),
+        JXDLRC(127, "德林人才网导入(http://www.jxrczpw.com)"),
+        RC0757(128, "大佛山人才网简历导入(http://www.0757rc.com)"),
+        JOBSKY_1(129, "博天人才网(http://www.job-sky.com)"),
+        JJRW(130, "家具人才网(http://www.jjrw.com)"),
+        SYS_RC0757(131, "大佛山人才网后台导入(http://www.0757rc.com)"),
+        ZSJJOB(132, "珠三角人才网(http://www.zsjjob.com)"),
+        NBRC(133, "宁波人才网(www.nbrc.com.cn)"),
+        HNJ(134, "湖南招聘网(http://www.hnz.com.cn)"),
+        NJRSRC(135, "南京招聘网(http://www.njrsrc.com)"),
+        NAJIE(136, "纳杰人才网(http://www.333job.com)"),
+        HNHYRC(137, "衡阳人才网(http://www.hnhyrc.com)"),
+        KUAIJIE(138, "快捷人才网(http://jz.hr1000.com)"),
+        XAJOB(139, "中国西安人才网(http://www.xajob.com)"),
+
+        DONGGUAN(200, "东莞"),
+        FOSHAN(201, "佛山"),
+        XIAN(202, "西安"),
+        ZHONGSHAN(203, "中山"),
+        JIANGMEN(204, "江门"),
+        TIANJIN(205, "天津"),
+        BEIJING(206, "北京"),
+        SHANGHAI(207, "上海"),
+        GUANGZHOU(208, "广州"),
+        SHENZHEN(209, "深圳"),
+        WUHAN(210, "武汉"),
+        HUIZHOU(211, "惠州"),
+        SUZHOU(212, "苏州"),
+        CHANGSHA(213, "长沙"),
+        CHONGQING(214, "重庆"),
+        CHENGDU(215, "成都"),
+        NANCHANG(216, "南昌"),
+        NINGBO(217, "宁波"),
+        ZHEJIANG(218, "浙江"),
+        CQNEWS(219, "重庆华龙网"),
+        SNS(220, "职友圈"),
+        WUXI(221, "无锡"),
+        CHENZHOU(222, "郴州"),
+        DALIAN(223, "大连"),
+        QINGDAO(224, "青岛"),
+        HEFEI(225, "合肥"),
+        ZHENGZHOU(226, "郑州"),
+        XUZHOU(227, "徐州"),
+        NANJING(228, "南京"),
+        HENGYANG(229, "衡阳"),
+        ZHUHAI(230, "珠海"),
+        XIANGTAN(231, "湘潭"),
+        JINGZHOU(232, "荆州"),
+
+        THIRD_BINDING_REG(400, "第三方绑定注册"),
+        MOBILE_REG(500, "手机客户端"),
+        FAST_REG(600, "快速注册"),
+        WEBCHATWIND_REG(601, "微疯注册"),
+        WECHAT_REG(602, "微信服务号注册"),
+        TOUCH_REG(603, "触屏版注册"),
+
+        //注册送话费从900--1999
+        ACT_REG_DG(900,"注册送话费-莞城-线下"),
+        ACT_REG_CA(901,"注册送话费-长安-线下"),
+        ACT_REG_TX(902,"注册送话费-塘厦-线下"),
+        ACT_REG_ZS(904,"注册送话费-中山-线下"),
+        ACT_REG_JM(908,"注册送话费-江门-线下"),
+        ACT_REG_FS(909,"注册送话费-佛山-线下"),
+
+        ACT_REG_NET_M_WB(903,"注册送话费-总部-微博"),
+        ACT_REG_NET_M_WX(910,"注册送话费-总部-微信"),
+        ACT_REG_NET_WWW(911,"注册送话费-总部-网站"),
+        ACT_REG_NET_DG(912,"注册送话费-东莞-网站"),
+        ACT_REG_DG_SCHOOL(913,"注册送话费-莞城-校园推广(有文案)"),
+        ACT_REG_DG_OPENAREA1(914,"注册送话费-莞城-公共区域"),
+        ACT_REG_DG_OPENAREA2(915,"注册送话费-莞城-公共区域(有文案)"),
+        ACT_REG_DG_OPR(916,"注册送话费-莞城-外包-线下"),
+
+        ACT_REG_NET_NJ(920,"注册送话费-南京-线上"),//16010000
+        ACT_REG_OFFLINE_NJ(921,"注册送话费-南京-线下"),
+
+        ACT_REG_NET_CZ(930,"注册送话费-郴州-线上"),
+        ACT_REG_OFFLINE_CZ(931,"注册送话费-郴州-线下"),
+
+        ACT_REG_NET_NB(940,"注册送话费-宁波-线上"),
+        ACT_REG_OFFLINE_NB(941,"注册送话费-宁波-线下"),
+
+        ACT_REG_NET_NC(950,"注册送话费-南昌-线上"),
+        ACT_REG_OFFLINE_NC(951,"注册简历送话费-南昌-招聘会现场"),
+
+        ACT_REG_NET_CS(960,"注册送话费-长沙-线上"),
+        ACT_REG_OFFLINE_CS(961,"注册送话费-长沙-线下"),
+
+        ACT_REG_NET_WH(970,"注册送话费-武汉-线上"),
+        ACT_REG_OFFLINE_WH(971,"注册送话费-武汉-线下"),
+
+        ACT_REG_NET_JZ(980,"注册送话费-荆州-线上"),
+        ACT_REG_OFFLINE_JZ(981,"注册送话费-荆州-线下"),
+
+        ACT_REG_NET_HF(990,"注册送话费-合肥-线上"),
+        ACT_REG_OFFLINE_HF(991,"注册送话费-合肥-线下"),
+
+        ACT_REG_NET_HY(1010,"注册送话费-衡阳-线上"),
+        ACT_REG_HY_IRC(1011,"注册送话费-衡阳-招聘会现场"),
+        ACT_REG_HY_SCHOOL(1012,"注册送话费-衡阳-校园推广"),
+
+        ACT_REG_NET_XT(1020,"注册送话费-湘潭-线上"),
+        ACT_REG_OFFLINE_XT(1021,"注册送话费-湘潭-招聘会"),
+
+        ACT_REG_NET_XN(1030,"注册送话费-咸宁-线上"),
+        ACT_REG_OFFLINE_XN(1031,"注册送话费-咸宁-线下"),
+
+        ACT_REG_NET_SY(1040,"注册送话费-邵阳-线上"),
+        ACT_REG_OFFLINE_SY(1041,"注册送话费-邵阳-线下"),
+
+        ACT_REG_NET_YZ(1050,"注册送话费-永州-线上"),
+        ACT_REG_OFFLINE_YZ(1051,"注册送话费-永州-线下"),
+
+        ACT_REG_NET_JM(1060,"注册送话费-江门-线上"),
+        ACT_REG_OFFLINE_JM(1061,"注册送话费-江门-线下"),
+
+        ACT_REG_NET_FS(1070,"注册送话费-佛山-线上"),
+        ACT_REG_OFFLINE_FS(1071,"注册送话费-佛山-线下"),
+
+        ACT_REG_NET_ZS(1080,"注册送话费-中山-线上"),
+        ACT_REG_OFFLINE_ZS(1081,"注册送话费-中山-线下"),
+
+        ACT_REG_NET_GZ(1090,"注册送话费-广州-线上"),
+        ACT_REG_OFFLINE_GZ(1091,"注册送话费-广州-线下"),
+
+        ACT_REG_NET_SZ(1100,"注册送话费-深圳-线上"),
+        ACT_REG_OFFLINE_SZ(1101,"注册送话费-深圳-线下"),
+
+        ACT_REG_NET_HZ(1110,"注册送话费-惠州-线上"),
+        ACT_REG_OFFLINE_HZ(1111,"注册送话费-惠州-线下"),
+
+        ACT_REG_NET_ZH(1120,"注册送话费-珠海-线上"),
+        ACT_REG_OFFLINE_ZH(1121,"注册送话费-珠海-线下"),
+
+        ACT_REG_NET_QY(1130,"注册送话费-清远-线上"),
+        ACT_REG_OFFLINE_QY(1131,"注册送话费-清远-线下"),
+
+        ACT_REG_NET_SD(1140,"注册送话费-顺德-线上"),
+        ACT_REG_OFFLINE_SD(1141,"注册送话费-顺德-线下"),
+
+        ACT_REG_NET_ZQ(1150,"注册送话费-肇庆-线上"),
+        ACT_REG_OFFLINE_ZQ(1151,"注册送话费-肇庆-线下"),
+
+        ACT_REG_NET_CQ(1160,"注册送话费-重庆-线上"),
+        ACT_REG_OFFLINE_CQ(1161,"注册送话费-重庆-线下"),
+
+        ACT_REG_NET_XA(1170,"注册送话费-西安-线上"),
+        ACT_REG_OFFLINE_XA(1171,"注册送话费-西安-线下"),
+
+        ACT_REG_ONLINE_TENXIN(1180,"注册送话费-腾讯广点通"),
+
+        ACT_REG_SPEC_CHANAN(1190, "注册抽话费-长安-招聘会"),
+        ACT_REG_SPEC_FOSHAN(1200, "注册抽话费-佛山-招聘会"),
+        ACT_REG_SPEC_ZHENSAN(1210, "注册抽话费-中山-招聘会"),
+        ACT_REG_SPEC_XANGTAN(1220, "注册抽话费-湘潭-招聘会"),
+        ACT_REG_SPEC_ZHUZOU(1230, "注册抽话费-郴州-招聘会"),
+        ACT_REG_SPEC_JINZOU(1240, "注册抽话费-荆州-招聘会"),
+        ACT_REG_SPEC_NANJIN(1250, "注册抽话费-南京-招聘会"),
+        ACT_REG_SPEC_TANXIA(1260, "注册抽话费-塘厦-招聘会"),
+        ACT_REG_SPEC_JIANGMAN(1270, "注册抽话费-江门-招聘会"),
+        ACT_REG_SPEC_HENGYANG(1280,"注册抽话费-衡阳-招聘会"),
+
+
+        SCHOOL_DG_ZIYUEJISU(2000,"校园活动-东莞职业技术学院");
+
+
+        private int value;
+        private String name;
+
+        public int getValue() {
+            return value;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        private ComeFrom(int value, String name) {
+            this.value = value;
+            this.name = name;
+        }
+
+        public static ComeFrom getTypeByValue(Integer value) {
+            if(value == null) return ComeFrom.WEB;
+            for(ComeFrom status : values()) {
+                if(status.getValue() == value.intValue()) return status;
+            }
+            return ComeFrom.WEB;
+        }
+    }
+    /**
+     * 简历类别
+     * 注意：旧数据有长沙简历类别，正式简历包含长沙简历
+     */
+    public enum ResumeType {
+
+        /**
+         * 正式简历
+         */
+        COMMON(0, "正式简历"),
+
+        /**
+         * 正式简历(长沙)
+         */
+        CHANGSHA(1, "长沙简历"),
+
+        /**
+         * 名片（微简历）
+         */
+        CARD(4, "名片");
+
+        private Integer value;
+        private String descript;
+
+        private ResumeType(Integer value, String descript) {
+            this.value = value;
+            this.descript = descript;
+        }
+
+        public Integer getValue() {
+            return value;
+        }
+
+        public static ResumeType getResumeTypeForValue(Integer value) {
+            if(value == null)
+                return ResumeType.COMMON;
+            for(ResumeType status : values()) {
+                if(status.getValue().intValue() == value.intValue())
+                    return status;
+            }
+            return ResumeType.COMMON;
+        }
+
+        @Override
+        public String toString() {
+            return descript;
+        }
+    }
+    
+    /**
+     * 职位状态
+     * @author leo
+     *
+     */
+    public enum PositionStatus {
+    	POST(Constants.POS_STATUS_POST, "正常招聘"),
+    	POST_WAIT(Constants.POS_STATUS_POST_WAIT, "正在招聘"),
+    	WAIT_FOR_FINISH(Constants.POS_STATUS_WAIT_FOR_FINISH, "已审核待完善"),
+    	WAIT_FOR_AUDIT(Constants.POS_STATUS_WAIT_FOR_AUDIT, "待审核"),
+    	STOP(Constants.POS_STATUS_STOP, "停止招聘"),
+        COM_EXPIRED(Constants.POS_STATUS_COM_EXPIRED, "已过期"),
+    	EXPIRED(Constants.POS_STATUS_EXPIRED, "已过期"),
+    	TIMEOUT(Constants.POS_STATUS_TIMEOUT, "超时屏蔽"),
+        DENIED(Constants.POS_STATUS_DENIED, "未通过审核"),
+        DELETED(Constants.POS_STATUS_DELETED, "已删除");
+
+    	private int value;
+		private String descript;
+		
+		public int getValue() {
+			return value;
+		}
+		
+		public String getDescript() {
+			return descript;
+		}
+
+		private PositionStatus(int value, String descript) {
+			this.value = value;
+			this.descript = descript;
+		}
+		
+		public static String getDescriptByValue(int value) {
+			for(PositionStatus status : PositionStatus.values()) {
+				if(status.getValue() == value)
+					return status.getDescript();
+			}
+			return "";
+		}
+    }
+
+    /**
+     * 收到的简历类型
+     * @author xh 
+     * @date 2014-2-20 上午10:57:52 
+     *
+     */
+    public enum ReceiveType {
+    	/**
+    	 * 个人主动应聘
+    	 */
+    	PER_INTERVIEW(0),
+    	/**
+    	 * 后台系统推荐
+    	 */
+    	SYS_RECOMMAND(1),
+    	/**
+    	 * 企业邀请面试
+    	 */
+    	COM_INVITATION(2),
+    	/**
+    	 * 视频面试
+    	 */
+    	VOID_INTERVIEW(3);
+    	
+    	private Integer value;
+    	
+    	public Integer getValue() {
+			return value;
+		}
+
+		private ReceiveType(Integer value) {
+    		this.value = value;
+    	}
+    }
+}

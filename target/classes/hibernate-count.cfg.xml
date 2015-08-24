@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+
+<hibernate-configuration>
+
+    <session-factory>
+
+        <property name="show_sql">false</property>
+        <property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+        <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
+        <property name="connection.url">jdbc:mysql://192.168.8.29/Jobemail?zeroDateTimeBehavior=convertToNull</property>
+        <property name="connection.username">jobquery</property>
+        <property name="connection.password">jobquery</property>
+
+        <mapping class="com.job5156.model.logs.LogMailBatchSend"/>
+        <mapping class="com.job5156.model.logs.LogComReceiveResNum"/>
+        <mapping class="com.job5156.model.mail.EmailQueue"/>
+        <mapping class="com.job5156.model.count.CountPosResCate"/>
+        <mapping class="com.job5156.model.count.CountPosResCateJobcn"/>
+        <mapping class="com.job5156.model.count.CountSiteIndexCheck"/> 
+        <mapping class="com.job5156.model.sys.SysFromSource"/>
+        <mapping class="com.job5156.model.statistics.CountAccessModeDaily"/>
+        <mapping class="com.job5156.model.statistics.CountPvCityAll"/>
+        <mapping class="com.job5156.model.perbehav.PerBehavTrack"/>
+        <mapping class="com.job5156.model.perbehav.UvTrack"/>
+
+    </session-factory>
+
+</hibernate-configuration>

@@ -1,0 +1,304 @@
+package com.job5156.task;
+
+import com.google.gson.Gson;
+import com.job5156.common.Constants;
+import com.job5156.common.util.HibernateActionUtil;
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import org.apache.commons.lang.ObjectUtils;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 职位平均水平统计
+ * Created by pzm on 2015/1/12.
+ */
+public class PosAverageLevelStatis {
+    JdbcTemplate actionJdbcTemplate = HibernateActionUtil.getJdbcTemplate();
+    JdbcTemplate baseJdbcTemplate = HibernateUtil.getJdbcTemplate();
+    JdbcTemplate countJdbcTemplate = HibernateCountUtil.getJdbcTemplate();
+    Gson gson = new Gson();
+    private Logger logger = Logger.getLogger(PosAverageLevelStatis.class);
+    private String fromEffectPosTb = " FROM " +
+            " com_position cp " +
+            "LEFT JOIN com_right cri ON cp.com_id = cri.com_id " +
+            "WHERE " +
+            " cp.pos_status > 0 " +
+            "AND cp.del_status != - 1 " +
+            "AND cp.end_date >= CURDATE() " +
+            "AND cri.member_type >= 1 " +
+            "AND cri.member_type <= 6 " +
+            "AND cri.expire_date >= CURDATE() ";
+
+    /**
+     * 平均工资水平
+     */
+    public void statisAvgSalary() {
+        logger.info(String.format("[%s] start!", Thread.currentThread().getStackTrace()[1].getMethodName()));
+        String sql = "SELECT " +
+                " cp.pos_type_sys, " +
+                " ifnull(cp.req_work_year,-2) as req_work_year, " +
+                " round(avg(ifnull(cp.max_salary,0))) as avg_salary" +
+                fromEffectPosTb +
+                " AND cp.pos_type_sys is not null GROUP BY " +
+                " 1,2 ";
+        int insertSucCount = 0, updateSucCount = 0, failCount = 0;
+        for (Map<String, Object> row : baseJdbcTemplate.queryForList(sql)) {
+            Object pos_type_sys = row.get("pos_type_sys");
+            Object req_work_year = row.get("req_work_year");
+            Object avg_salary = row.get("avg_salary");
+            String count_date = new DateTime().toString("yyyy-MM-dd");
+            String insertSql = "insert into pos_avg_salary (job_code,filter_work_year,avg_salary,count_date) values (?,?,?,?)";
+            String updateSql = "update pos_avg_salary set avg_salary=?,count_date=? where job_code=? and filter_work_year=?";
+            try {
+                countJdbcTemplate.update(insertSql, pos_type_sys, req_work_year, avg_salary, count_date);
+                insertSucCount++;
+            } catch (DataAccessException dae) {
+                if (dae.toString().contains("Duplicate entry")) {
+                    try {
+                        countJdbcTemplate.update(updateSql, avg_salary, count_date, pos_type_sys, req_work_year);
+                        updateSucCount++;
+                    } catch (Exception e) {
+                        logger.error(String.format("[%s] update avg_salary fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+                        failCount++;
+                    }
+                } else {
+                    logger.error(String.format("[%s] insert avg_salary fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), dae);
+                    failCount++;
+                }
+            }
+        }
+        logger.info(String.format("[%s] end! insert_count:%s, update_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), insertSucCount, updateSucCount, failCount));
+    }
+
+    /**
+     * 计算最近7天职位查看数
+     */
+    public void countPosViewCountRecent() {
+        DateTime now = new DateTime();
+        logger.info(String.format("[%s] start! countdate:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), now.toString("yyyy-MM-dd")));
+        int sucCount = 0, failCount = 0;
+        try {
+            String startDate = now.minusDays(7).toString("yyyy-MM-dd");
+            String endDate = now.minusDays(1).toString("yyyy-MM-dd");
+            String sql = "SELECT " +
+                    " pos_id, " +
+                    " count(*) AS view_count " +
+                    "FROM " +
+                    " log_access_pos " +
+                    "WHERE " +
+                    " create_date >=? " +
+                    "AND create_date <? " +
+                    "GROUP BY " +
+                    " pos_id;";
+            for (Map<String, Object> row : actionJdbcTemplate.queryForList(sql, startDate, endDate)) {
+                String pos_id = row.get("pos_id").toString();
+                long view_count = (long) row.get("view_count");
+
+                String updateSql = "update com_position set view_count_recent=? where id=?";
+                try {
+                    baseJdbcTemplate.update(updateSql, view_count, pos_id);
+                    sucCount++;
+                } catch (Exception e) {
+                    logger.error(String.format("[%s] update view_count_recent fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+                    failCount++;
+                }
+            }
+        } catch (Exception e) {
+            logger.error(String.format("[%s] fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+        }
+        logger.info(String.format("[%s] end! success_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), sucCount, failCount));
+    }
+
+    /**
+     * 计算最近7天收到简历数
+     */
+    public void countPosDeliverCountRecent() {
+        DateTime now = new DateTime();
+        logger.info(String.format("[%s] start! countdate:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), now.toString("yyyy-MM-dd")));
+        int sucCount = 0, failCount = 0;
+        try {
+            String startDate = now.minusDays(7).toString("yyyy-MM-dd");
+            String endDate = now.minusDays(1).toString("yyyy-MM-dd");
+            String sql = "SELECT " +
+                    " pos_id, " +
+                    " count(distinct(per_user_id)) AS deliver_count " +
+                    "FROM " +
+                    " com_receive " +
+                    "WHERE " +
+                    " create_date >=? " +
+                    "AND create_date <? " +
+                    "GROUP BY " +
+                    " pos_id;";
+            for (Map<String, Object> row : actionJdbcTemplate.queryForList(sql, startDate, endDate)) {
+                String pos_id = row.get("pos_id").toString();
+                long deliver_count = (long) row.get("deliver_count");
+                String updateSql = "update com_position set resume_count_recent=? where id=? ";
+                try {
+                    baseJdbcTemplate.update(updateSql, deliver_count, pos_id);
+                    sucCount++;
+                } catch (Exception e) {
+                    logger.error(String.format("[%s] update deliver_count_recent fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+                    failCount++;
+                }
+            }
+        } catch (Exception e) {
+            logger.error(String.format("[%s] fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+        }
+        logger.info(String.format("[%s] end! success_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), sucCount, failCount));
+    }
+
+    /**
+     * 平均水平(学历，工作年限，查看数，投递数)
+     */
+    public void statisPosTypeAvgLevel() {
+        logger.info(String.format("[%s] start!", Thread.currentThread().getStackTrace()[1].getMethodName()));
+
+        //必须先计算每个职位最近查看数以及投递数
+        countPosViewCountRecent();
+        countPosDeliverCountRecent();
+
+        String sql = "SELECT " +
+                " cp.pos_type_sys," +
+                " round(avg(if(cp.req_degree<0,0,cp.req_degree))) as avg_degree," +
+                " round(avg(if(cp.req_work_year=99,-2,cp.req_work_year))) as avg_work_year, " + //99代表未选择，转换为-2，代表工作经验要求的最低值
+                " round(avg(if(cp.view_count_recent<0,0,cp.view_count_recent))) as avg_view_count_recent, " +
+                " round(avg(if(cp.resume_count_recent<0,0,cp.resume_count_recent))) as avg_resume_count_recent " +
+                fromEffectPosTb +
+                " AND cp.pos_type_sys is not null" +
+                " GROUP BY 1";
+        int insertSucCount = 0, updateSucCount = 0, failCount = 0;
+        for (Map<String, Object> row : baseJdbcTemplate.queryForList(sql)) {
+            Object pos_type_sys = row.get("pos_type_sys");
+            Object avg_degree = row.get("avg_degree");
+            Object avg_work_year = row.get("avg_work_year");
+            Object avg_view_count_recent = row.get("avg_view_count_recent");
+            Object avg_resume_count_recent = row.get("avg_resume_count_recent");
+            String count_date = new DateTime().toString("yyyy-MM-dd");
+
+            String insertSql = "insert into pos_avg_level_statis (job_code,avg_degree,avg_work_year,avg_view_count_recent,avg_resume_count_recent,count_date) values (?,?,?,?,?,?)";
+            String updateSql = "update pos_avg_level_statis set avg_degree=?,avg_work_year=?,avg_view_count_recent=?,avg_resume_count_recent=?,count_date=? where job_code=?";
+            try {
+                countJdbcTemplate.update(insertSql, pos_type_sys, avg_degree, avg_work_year, avg_view_count_recent, avg_resume_count_recent, count_date);
+                insertSucCount++;
+            } catch (DataAccessException dae) {
+                if (dae.toString().contains("Duplicate entry")) {
+                    try {
+                        countJdbcTemplate.update(updateSql, avg_degree, avg_work_year, avg_view_count_recent, avg_resume_count_recent, count_date, pos_type_sys);
+                        updateSucCount++;
+                    } catch (Exception e) {
+                        logger.error(String.format("[%s] update PosTypeAvgLevel fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+                        failCount++;
+                    }
+                } else {
+                    logger.error(String.format("[%s] insert PosTypeAvgLevel fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), dae);
+                    failCount++;
+                }
+            }
+        }
+        logger.info(String.format("[%s] end! insert_count:%s, update_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), insertSucCount, updateSucCount, failCount));
+    }
+
+    /**
+     * 使用淘标签的职位数
+     */
+    public void statisUsingTaoLabelPosCount() {
+        String posCountTaoSql = "SELECT count(1)" +
+                fromEffectPosTb +
+                " AND cp.tao_label is not null" +
+                " AND cp.tao_label !=''" +
+                " AND cp.tao_label!='[]'" +
+                " AND cp.tao_label!='null'";
+        statisPosCountRun(posCountTaoSql, Constants.POS_COUNT_STATIS_TAOLEBEL_POS);
+    }
+
+    /**
+     * 有效职位数
+     */
+    public void statisPosCount() {
+        String sql = "SELECT count(1)" + fromEffectPosTb;
+        statisPosCountRun(sql, Constants.POS_COUNT_STATIS_EFFECT_POS);
+    }
+
+    private void statisPosCountRun(String sql, String countType) {
+        logger.info(String.format("[%s] start!", Thread.currentThread().getStackTrace()[2].getMethodName()));
+        int insertSucCount = 0, updateSucCount = 0, failCount = 0;
+        try {
+            int posCount = baseJdbcTemplate.queryForInt(sql);
+            String count_date = new DateTime().toString("yyyy-MM-dd");
+            try {
+                countJdbcTemplate.update("insert into pos_count_statis (count_type,count_result,count_date) values (?,?,?)", countType, posCount, count_date);
+                insertSucCount++;
+            } catch (DataAccessException dae) {
+                if (dae.toString().contains("Duplicate entry")) {
+                    countJdbcTemplate.update("update pos_count_statis set count_result=?,count_date=? where count_type=?", posCount, count_date, countType);
+                    updateSucCount++;
+                } else {
+                    throw dae;
+                }
+            }
+        } catch (Exception e) {
+            logger.error(String.format("[%s] fail!", Thread.currentThread().getStackTrace()[2].getMethodName()), e);
+            failCount++;
+        }
+        logger.info(String.format("[%s] end! insert_count:%s, update_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[2].getMethodName(), insertSucCount, updateSucCount, failCount));
+    }
+
+    /**
+     * 每种淘标签的使用频率
+     */
+    public void statisTaoLabelUseFrequency() {
+        logger.info(String.format("[%s] start!", Thread.currentThread().getStackTrace()[1].getMethodName()));
+        int insertSucCount = 0, updateSucCount = 0, failCount = 0;
+        try {
+            String sql = "SELECT cp.tao_label" +
+                    fromEffectPosTb +
+                    " AND cp.tao_label is not null" +
+                    " AND cp.tao_label !=''" +
+                    " AND cp.tao_label!='[]'";
+            Map<String, Integer> taoLabelUseCount = new HashMap<>();
+            for (Map<String, Object> row : baseJdbcTemplate.queryForList(sql)) {
+                String tao_label = ObjectUtils.toString(row.get("tao_label"), "");
+                if (!tao_label.isEmpty() && !tao_label.equals("[]") && !tao_label.equals("null")) {
+                    List<String> taoLabelList = gson.fromJson(tao_label, List.class);
+                    if (taoLabelList != null) {
+                        for (String taoLabel : taoLabelList) {
+                            taoLabelUseCount.put(taoLabel, taoLabelUseCount.get(taoLabel) == null ? 0 : taoLabelUseCount.get(taoLabel) + 1);
+                        }
+                    }
+                }
+            }
+            String insertSql = "insert into pos_taolabel_freq_statis (tao_label,pos_count,count_date) values (?,?,?)";
+            String updateSql = "update pos_taolabel_freq_statis set pos_count=?,count_date=? where tao_label=?";
+            String count_date = new DateTime().toString("yyyy-MM-dd");
+            for (Map.Entry<String, Integer> taoLabelEntry : taoLabelUseCount.entrySet()) {
+                try {
+                    countJdbcTemplate.update(insertSql, taoLabelEntry.getKey(), taoLabelEntry.getValue(), count_date);
+                    insertSucCount++;
+                } catch (DataAccessException dae) {
+                    if (dae.toString().contains("Duplicate entry")) {
+                        try {
+                            countJdbcTemplate.update(updateSql, taoLabelEntry.getValue(), count_date, taoLabelEntry.getKey());
+                            updateSucCount++;
+                        } catch (Exception e) {
+                            logger.error(String.format("[%s] update pos_taolabel_freq_statis fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+                            failCount++;
+                        }
+                    } else {
+                        logger.error(String.format("[%s] insert pos_taolabel_freq_statis fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), dae);
+                        failCount++;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error(String.format("[%s] fail!", Thread.currentThread().getStackTrace()[1].getMethodName()), e);
+        }
+        logger.info(String.format("[%s] end! insert_count:%s, update_count:%s, fail_count:%s", Thread.currentThread().getStackTrace()[1].getMethodName(), insertSucCount, updateSucCount, failCount));
+    }
+}

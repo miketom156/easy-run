@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+
+<hibernate-configuration>
+
+    <session-factory>
+
+        <property name="show_sql">false</property>
+        <property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+        <property name="connection.driver_class">${jdbc.query2.driverClassName}</property>
+        <property name="connection.url">${jdbc.query2.url}</property>
+        <property name="connection.username">${jdbc.query2.username}</property>
+        <property name="connection.password">${jdbc.query2.password}</property>
+
+        <mapping class="com.job5156.model.init.PosExportBrief"/>
+        <mapping class="com.job5156.model.init.ResumeExportBrief"/>
+    </session-factory>
+
+</hibernate-configuration>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">  
+<properties>  
+	<comment>IK Analyzer 扩展配置</comment>
+	<!-- 词库文件根目录，若没有配置则扩展词库文件必须放到classpath下面-->
+	<entry key="dic_root"></entry>
+	 
+	<!-- 自定义扩展主词库，多个文件用“;”分隔，文件名称以“ext_”开头-->
+	<entry key="ext_dict">ext_main.dic</entry> 
+	  
+	<!-- 自定义扩展主词库，多个文件用“;”分隔，文件名称以“ext_”开头 -->
+	<entry key="ext_stopwords">ext_stopword.dic</entry> 
+</properties>

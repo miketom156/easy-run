@@ -1,0 +1,87 @@
+
+############
+### JNDI ###
+############
+## specify a JNDI name for the SessionFactory
+#hibernate.session_factory_name hibernate/session_factory
+
+#################
+### Platforms ###
+#################
+
+## JNDI Datasource
+## my sql ##
+##hibernate.connection.datasource java:comp/env/jdbc/myTestDB
+##hibernate.dialect net.sf.hibernate.dialect.MySQLDialect
+##hibernate.connection.provider_class net.sf.hibernate.connection.DatasourceConnectionProvider
+
+## sql server ##
+##hibernate.connection.datasource java:comp/env/jdbc/SalaryDB
+##hibernate.dialect net.sf.hibernate.dialect.SQLServerDialect
+##hibernate.connection.provider_class net.sf.hibernate.connection.DatasourceConnectionProvider
+
+
+#################################
+### Plugin ConnectionProvider ###
+#################################
+
+## use a custom ConnectionProvider (if not set, Hibernate will choose a built-in ConnectionProvider using hueristics)
+
+
+#hibernate.connection.provider_class org.hibernate.connection.DBCPConnectionProvider
+
+##############################
+### Miscellaneous Settings ###
+##############################
+
+## print all generated SQL to the console
+##hibernate.show_sql true
+
+## set the JDBC fetch size max=100
+hibernate.jdbc.fetch_size 80
+
+## set the maximum JDBC 2 batch size (a nonzero value enables batching)max=50
+hibernate.jdbc.batch_size 25
+
+## use streams when writing binary types to / from JDBC
+#hibernate.jdbc.use_streams_for_binary true
+
+## set the maximum depth of the outer join fetch tree
+hibernate.max_fetch_depth 1
+######################
+### Query Language ###
+######################
+
+## define query language constants / function names
+hibernate.query.substitutions true 1, false 0, yes 'Y', no 'N'
+
+## package imports
+hibernate.query.imports org..hibernate.test, org.hibernate.eg
+
+###################################
+### Apache DBCP Connection Pool ###
+###################################
+
+## connection pool
+
+#hibernate.dbcp.maxActive 100
+#hibernate.dbcp.whenExhaustedAction 1
+#hibernate.dbcp.maxWait 120000
+#hibernate.dbcp.maxIdle 10
+
+## prepared statement cache
+
+#hibernate.dbcp.ps.maxActive 100
+#hibernate.dbcp.ps.whenExhaustedAction 1
+#hibernate.dbcp.ps.maxWait 120000
+#hibernate.dbcp.ps.maxIdle 100
+
+## optional query to validate pooled connections:
+
+#hibernate.dbcp.validationQuery select 1 from dual
+#hibernate.dbcp.testOnBorrow true
+#hibernate.dbcp.testOnReturn false
+
+## enable CGLIB reflection optimizer (enabled by default)
+
+hibernate.cglib.use_reflection_optimizer false

@@ -1,0 +1,151 @@
+package com.job5156.common;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.math.NumberUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import javax.sql.DataSource;
+import java.util.*;
+
+/**
+ * Created by pzm on 2015/1/13.
+ */
+public class SimilarScoreCalculator {
+    //    出现次数区间	频率得分区间	可信度
+    //    1-10	        10-50分	        差
+    //    10-50	        50-70分	        较差
+    //    50-100	    70-85分	        一般
+    //    100-200	    85-95分	        可信
+    //    200-1000	    95-100分	    良好
+    //    1000以上	    100分	        优秀
+    private static final List<ImmutableMap<String, Integer>> params = ImmutableList.of(
+            ImmutableMap.of("appearCountLow", 1, "appearCountHigh", 10, "appearScoreLow", 10, "appearScoreHigh", 50),
+            ImmutableMap.of("appearCountLow", 10, "appearCountHigh", 50, "appearScoreLow", 50, "appearScoreHigh", 70),
+            ImmutableMap.of("appearCountLow", 50, "appearCountHigh", 100, "appearScoreLow", 70, "appearScoreHigh", 85),
+            ImmutableMap.of("appearCountLow", 100, "appearCountHigh", 200, "appearScoreLow", 85, "appearScoreHigh", 95),
+            ImmutableMap.of("appearCountLow", 200, "appearCountHigh", 1000, "appearScoreLow", 95, "appearScoreHigh", 100),
+            ImmutableMap.of("appearCountLow", 1000, "appearCountHigh", Integer.MAX_VALUE, "appearScoreLow", 100, "appearScoreHigh", 100));
+    private List<Map<String, Object>> jobSimilarScoreList;
+
+    /**
+     * 计算相似度得分
+     *
+     * @param hitCount    命中次数
+     * @param appearCount 出现次数
+     * @return
+     */
+    public int similarScore(int hitCount, int appearCount) {
+        for (Map<String, Integer> paramMap : params) {
+            float appearCountLow = (float) paramMap.get("appearCountLow");     //出现次数区间下限
+            float appearCountHigh = (float) paramMap.get("appearCountHigh");  //出现次数区间上限
+            float appearScoreLow = (float) paramMap.get("appearScoreLow");    //频率得分下限
+            float appearScoreHigh = (float) paramMap.get("appearScoreHigh");  //频率得分上限
+            if (appearCount >= appearCountLow && appearCount < appearCountHigh) {
+                //相似得分=(频率得分下限+(出现次数-出现次数区间下限)*频率得分区间差/出现次数区间差)*命中率
+                return Math.round((appearScoreLow + (appearCount - appearCountLow) * (appearScoreHigh - appearScoreLow) / (appearCountHigh - appearCountLow)) * ((float) hitCount / appearCount));
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 判定职位
+     *
+     * @param posNameList
+     * @param ds
+     * @return
+     */
+    public int judgePosType(String[] posNameList, DataSource ds) {
+        ArrayList<Map.Entry<Integer, Integer>> mappingList = new ArrayList<>(getPosTypeScore(posNameList, ds).entrySet());
+        //通过比较器实现比较排序
+        Collections.sort(mappingList, new Comparator<Map.Entry<Integer, Integer>>() {
+
+            @Override
+            public int compare(Map.Entry<Integer, Integer> o1, Map.Entry<Integer, Integer> o2) {
+                return o1.getKey().compareTo(o2.getKey());
+            }
+        });
+        if (mappingList.isEmpty()) {
+            return -1;
+        } else {
+            return mappingList.get(0).getKey();
+        }
+    }
+
+/*    public Map<Integer,Integer> getPosTypeScoreUseSql(String[] posNameList, DataSource ds) {
+        Map<Integer, Integer> posTypeScore = new HashMap<>();
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(ds);
+        String containWordsSql="";
+        List<String> args=new ArrayList<>();
+        for(String posName : posNameList){
+            if(posName==null||posName.isEmpty()){
+                continue;
+            }
+            containWordsSql+=" or ? like concat('%',pos_segword,'%')";
+            args.add(posName);
+        }
+        if(args.isEmpty()){
+            return Collections.emptyMap();
+        }
+        List<Map<String,Object>> jobSimilarScoreList = jdbcTemplate.queryForList("select * from pos_word_lib where 1=2 "+containWordsSql,args.toArray());
+        for(Map<String, Object> jobSimilarScoreRecord : jobSimilarScoreList){
+            int similar_score = (int) jobSimilarScoreRecord.get("similar_score");
+            int job_code = (int) jobSimilarScoreRecord.get("job_code");
+            posTypeScore.put(job_code, (posTypeScore.containsKey(job_code) ? posTypeScore.get(job_code) : 0) + similar_score);
+        }
+        return posTypeScore;
+    }*/
+
+    public Map<Integer, Integer> getPosTypeScore(String[] posNameList, DataSource ds) {
+
+        Map<Integer, Integer> posTypeScore = new HashMap<>();
+        if (jobSimilarScoreList == null) {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(ds);
+            jobSimilarScoreList = jdbcTemplate.queryForList("select pos_segword,similar_score,job_code from pos_word_lib where similar_score>0");
+        }
+
+        for (String posName : posNameList) {
+            if (posName == null || posName.isEmpty()) {
+                continue;
+            }
+            for (Map<String, Object> jobSimilarScoreRecord : jobSimilarScoreList) {
+                String pos_segword = (String) jobSimilarScoreRecord.get("pos_segword");
+                if (posName.contains(pos_segword)) {
+                    int similar_score = (int) jobSimilarScoreRecord.get("similar_score");
+                    int job_code = (int) jobSimilarScoreRecord.get("job_code");
+                    posTypeScore.put(job_code, (posTypeScore.containsKey(job_code) ? posTypeScore.get(job_code) : 0) + similar_score);
+                }
+            }
+        }
+
+        return posTypeScore;
+    }
+/*    public int judgePosType(String[] posNameList, DataSource ds) {
+        Map<Integer, Integer> posTypeScore = new HashMap<>();
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(ds);
+        for (String segName : segWordComponent.cutWordAndSelf(posNameList)) {
+            List<Map<String, Object>> jobSimilarScoreList = jdbcTemplate.queryForList("select * from pos_word_lib where pos_segname=?", segName);
+            for (Map<String, Object> jobSimilarScoreRecord : jobSimilarScoreList) {
+                int similar_score = (int) jobSimilarScoreRecord.get("similar_score");
+                int job_code = (int) jobSimilarScoreRecord.get("job_code");
+                posTypeScore.put(job_code, (posTypeScore.containsKey(job_code) ? posTypeScore.get(job_code) : 0) + similar_score);
+            }
+        }
+        ArrayList<Map.Entry<Integer, Integer>> mappingList = new ArrayList<>(posTypeScore.entrySet());
+        //通过比较器实现比较排序
+        Collections.sort(mappingList, new Comparator<Map.Entry<Integer, Integer>>() {
+
+            @Override
+            public int compare(Map.Entry<Integer, Integer> o1, Map.Entry<Integer, Integer> o2) {
+                return o1.getKey().compareTo(o2.getKey());
+            }
+        });
+        if (posTypeScore.isEmpty()) {
+            return -1;
+        } else {
+            return mappingList.get(0).getKey();
+        }
+    }*/
+}

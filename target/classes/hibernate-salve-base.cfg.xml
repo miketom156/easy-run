@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+       
+       
+<hibernate-configuration>
+
+<session-factory>
+
+		<property name="show_sql">false</property>
+        <property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+        <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
+        <property name="connection.url">jdbc:mysql://192.168.8.47/5156base?zeroDateTimeBehavior=convertToNull</property>
+        <property name="connection.username">ztcwr</property>
+        <property name="connection.password">Chitone5156Zt%1</property>
+
+		<mapping class="com.job5156.model.per.PerUser" />
+		<mapping class="com.job5156.model.per.PerResume" />
+		<mapping class="com.job5156.model.per.PerSubscription" />
+		<mapping class="com.job5156.model.per.PerSearcher" />
+		<mapping class="com.job5156.model.per.PerLoginHistory"/>
+		
+        <mapping class="com.job5156.model.com.ComUser"/>
+        <mapping class="com.job5156.model.com.ComSearcher"/>
+        <mapping class="com.job5156.model.com.ComPosition"/>
+        <mapping class="com.job5156.model.com.ComContact"/>
+        <mapping class="com.job5156.model.com.ComDepartment"/>
+        <mapping class="com.job5156.model.com.ComInfo"/>
+        <mapping class="com.job5156.model.com.ComReceive"/>
+        <mapping class="com.job5156.model.com.ComRight"/>
+        <mapping class="com.job5156.model.com.ComSubscription"/>
+
+        <mapping class="com.job5156.model.logs.LogAction" />
+        <mapping class="com.job5156.model.mail.EmailInvaild" />
+        <mapping class="com.job5156.model.sys.system.SysUser"/>
+        <mapping class="com.job5156.model.sys.SysOperateLog" />
+        <mapping class="com.job5156.model.sys.SysWebSite" />
+        <mapping class="com.job5156.model.sys.setting.SysHotHunterPosition" />
+        <mapping class="com.job5156.model.sys.setting.SysHotRecruitCom" />
+        <mapping class="com.job5156.model.sys.subsite.SysHomePosition" />
+        <mapping class="com.job5156.model.sys.subsite.SysComPosSchool" />
+        <mapping class="com.job5156.model.sys.logo.SysLogoFile" />
+        <mapping class="com.job5156.model.sys.logo.SysLogoPosition" />
+        <mapping class="com.job5156.model.sys.logo.SysLogoResource" />
+        <mapping class="com.job5156.model.sys.logo.SysLogoQueue" />
+        <mapping class="com.job5156.model.sys.logo.SysLogoTable" />
+
+</session-factory>
+
+</hibernate-configuration>

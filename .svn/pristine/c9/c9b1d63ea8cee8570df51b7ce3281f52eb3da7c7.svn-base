@@ -1,0 +1,67 @@
+package com.job5156.run.fix;
+
+import com.job5156.model.sys.SysCountItemSetting;
+import com.job5156.task.count.CountItemTask;
+import com.job5156.vo.sys.SysCountItemSettingVo;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * <p>修复栏目统计的数据</p>
+ * Date: 2015/6/25 16:53
+ *
+ * @version 1.0
+ * @author: Lu Weibiao
+ */
+public class FixCountItem {
+    public static final Logger logger = Logger.getLogger(FixCountItem.class);
+
+    /**
+     * 支持的命令：
+     * <p>
+     *     --fixOmissiveDays={开始日期},{结束日期} 例：--fixOmissiveDays=2015-06-01,2015-06-23
+     * </p>
+     * @param args
+     */
+    public static void main(String[] args){
+        if(args != null && args.length > 0){
+            try{
+                String command = args[0];
+                if(command.startsWith("--fixOmissiveDays=")){
+                    String[] dateStrArr = command.substring("--fixOmissiveDays=".length()).split(",");
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    Date startDay = dateFormat.parse(dateStrArr[0]);
+                    Date endDay = dateFormat.parse(dateStrArr[1]);
+                    new FixCountItem().fixOmissiveDays(startDay, endDay);
+                }
+            }catch (Exception e){
+                logger.error("FixCountItem - 修复栏目统计出错", e);
+            }
+        }
+    }
+
+    /**
+     * 修复被遗漏统计的指定日期段内的记录
+     * @param startDay 开始日期
+     * @param endDay 结束日期
+     */
+    public void fixOmissiveDays(Date startDay, Date endDay){
+        CountItemTask task = new CountItemTask();
+        List<SysCountItemSetting> countItemSettingList = task.getValidCountItem();
+        DateTime jodaStartDay = new DateTime(startDay).withTimeAtStartOfDay();
+        DateTime jodaEndDay = new DateTime(endDay);
+        DateTime jodaCurDay = jodaStartDay;
+        while(!jodaCurDay.isAfter(jodaEndDay)) {
+            Date curDay = jodaCurDay.toDate();
+            for (SysCountItemSetting sysCountItemSetting : countItemSettingList) {
+                SysCountItemSettingVo sysCountItemSettingVo = task.toVo(sysCountItemSetting);
+                task.countItem(curDay, sysCountItemSettingVo);
+            }
+            jodaCurDay = jodaCurDay.plusDays(1);
+        }
+    }
+}

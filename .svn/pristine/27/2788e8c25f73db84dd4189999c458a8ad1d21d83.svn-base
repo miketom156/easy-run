@@ -1,0 +1,196 @@
+package com.job5156.task.count;
+
+
+import com.job5156.common.ApiCallTypeEnum;
+import com.job5156.common.util.HibernateCountUtil;
+import com.job5156.common.util.HibernateUtil;
+import com.job5156.model.statistics.CountAccessModeDaily;
+import com.job5156.model.statistics.SysCountMobileApp;
+import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: DJH
+ * Date: 14-10-10
+ * Time: 上午8:10
+ * 用于统计触屏版网页的访问量
+ */
+
+public class CountTouch {
+
+    private static Logger logger = Logger.getLogger(CountTouch.class);
+    private JdbcTemplate jdbcTemplateCount = HibernateCountUtil.getJdbcTemplate();
+    private static final Integer RET_SUC = 1;
+
+    /**
+     * 每天1:45统计触屏版网站的前一天的访问量
+     */
+    public void countVistorsAndPV() {
+        DateTime jodaCountDay = DateTime.now().minusDays(1).withTimeAtStartOfDay();
+        String countDayStr = jodaCountDay.toString("yyyy-MM-dd");
+
+        logger.info("开始执行" + countDayStr + "触屏版访问统计。");
+        countVistorsAndPV(jodaCountDay.toDate());
+        logger.info(countDayStr + "的触屏版访问统计执行完毕。");
+    }
+
+    /**
+     * 统计指定天
+     * @param countDay
+     */
+    public void countVistorsAndPV(Date countDay) {
+        Date start = new DateTime(countDay).withTimeAtStartOfDay().toDate();
+        Date end = new DateTime(countDay).plusDays(1).withTimeAtStartOfDay().toDate();
+
+        //查询出一天内访问的ip数量作为访问人数
+        Integer ipCount = getPeriodIpCount(start, end);
+        //查出一天内接口的调用次数作为pv
+        Integer totalCount = getPeriodCount(start, end);
+        //查出一天内访问注册接口的次数
+        Integer totalRegisterCount = getPeriodCountByUrl(new String[]{"/touch/reg/save","/touch/act/reg/step1/save"}, start, end,RET_SUC);
+        //查出一天内访问刷新简历接口的次数
+        Integer totalRefreshCount = getPeriodIpCountByUrl(new String[]{"/touch/resume/refresh/post"}, start, end,RET_SUC);
+        //查出一天内访问应聘接口的次数
+        Integer totalApplyCount = getPeriodCountByUrl(new String[]{"/api/touch/apply.json"}, start, end,RET_SUC);
+        //查出一天内访问应聘接口的ip数
+        Integer totalApplyIpCount = getPeriodIpCountByUrl(new String[]{"/api/touch/apply.json"}, start, end,RET_SUC);
+        //查出一天内的登陆人数
+        Integer totalLoginCount = getPeriodIpCountByUrl(new String[]{"/api/touch/login","/touch/login/post"}, start, end,RET_SUC);
+        //插入sys_count_mobile_app表(暂时忽略设备类型和操作系统)
+        CountAccessModeDaily countAccessModeDaily = new CountAccessModeDaily();
+        countAccessModeDaily.setAllAccessCount(totalCount);
+        countAccessModeDaily.setDeviceAccessCount(ipCount);
+        countAccessModeDaily.setApiCallType(ApiCallTypeEnum.TOUCH.getEnName());
+        countAccessModeDaily.setCountDate(start);
+        countAccessModeDaily.setApplicantApiCallCount(totalApplyCount);
+        countAccessModeDaily.setApplicantApiCallPerCount(totalApplyIpCount);
+        countAccessModeDaily.setResumeRefreshApiCallCount(totalRefreshCount);
+        countAccessModeDaily.setResumeAddApiCallCount(totalRegisterCount);
+        countAccessModeDaily.setPerLoginCount(totalLoginCount);
+        save(countAccessModeDaily);
+    }
+
+    public void save(CountAccessModeDaily countAccessModeDaily) {
+        HibernateCountUtil.currentSession().save(countAccessModeDaily);
+    }
+
+    public Integer getCountBySql(String sql) {
+        return jdbcTemplateCount.queryForObject(sql, Integer.class);
+    }
+
+    /**
+     * 获取时间范围内访问过的ip数量
+     *
+     * @param start
+     * @param end
+     * @return
+     */
+    public Integer getPeriodIpCount(Date start, Date end) {
+        String sql = "select count(distinct ip) from log_mobile_web_usage where  create_time between '" +
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'";
+        return getCountBySql(sql);
+    }
+
+    /**
+     * 获取时间范围内访问次数
+     *
+     * @param start
+     * @param end
+     * @return
+     */
+    public Integer getPeriodCount(Date start, Date end) {
+        String sql = "select count(*) from log_mobile_web_usage where  create_time between '"+
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'";
+        return getCountBySql(sql);
+    }
+
+    /**
+     * 获取时间范围内访问次数
+     *
+     * @param start
+     * @param end
+     * @return
+     */
+    public Integer getPeriodCountByUrl(String url, Date start, Date end) {
+        String sql = "select count(*) from log_mobile_web_usage where url='"+url+"' and  create_time between '"+
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'";
+        return getCountBySql(sql);
+    }
+
+    /**
+     * 获取时间范围内访问ip数
+     *
+     * @param start
+     * @param end
+     * @return
+     */
+    public Integer getPeriodIpCountByUrl(String url, Date start, Date end) {
+        String sql = "select count(distinct ip) from log_mobile_web_usage where url='"+url+"' and  create_time between '"+
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'";
+        return getCountBySql(sql);
+    }
+
+    /**
+     * 获取时间范围内访问次数
+     *
+     * @param start
+     * @param end
+     * @param ret
+     * @return
+     */
+    public Integer getPeriodCountByUrl(String[] urls, Date start, Date end,Integer ret) {
+        String sql = "select count(*) from log_mobile_web_usage where   create_time between '"+
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'"+
+                " and ret = " +ret+" ";
+        if(urls!=null && urls.length>0){
+            sql+="and (";
+            for(int i =0;i<urls.length;i++){
+                if(i == 0){
+                    sql+=" url = '"+urls[i]+"'";
+                }else{
+                    sql+=" or url = '"+urls[i]+"'";
+                }
+            }
+            sql+=")";
+        }
+        return getCountBySql(sql);
+    }
+
+    /**
+     * 获取时间范围内访问ip数
+     *
+     * @param start
+     * @param end
+     * @param ret
+     * @return
+     */
+    public Integer getPeriodIpCountByUrl(String[] urls, Date start, Date end,Integer ret) {
+        String sql = "select count(distinct ip) from log_mobile_web_usage where   create_time between '"+
+                new DateTime(start).toString("yyyy-MM-dd HH:mm:ss") + "' and '" +
+                new DateTime(end).toString("yyyy-MM-dd HH:mm:ss")+"'"+
+                " and ret = " +ret+" ";
+        if(urls!=null && urls.length>0){
+            sql+="and (";
+            for(int i =0;i<urls.length;i++){
+                if(i == 0){
+                     sql+=" url = '"+urls[i]+"'";
+                }else{
+                    sql+=" or url = '"+urls[i]+"'";
+                }
+            }
+            sql+=")";
+        }
+        return getCountBySql(sql);
+    }
+
+}
